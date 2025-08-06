@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+
+"""
+import modeller
+from Bio import Align
+from modeller.automodel import *
+import os
+import pathlib
+import shutil
+from prepmd import get_residues
+
+placeholder = "sequence:::::::::"
+
+
+def retitle_alignment(alignmentfile, title1, title2,
+                      metadata1=placeholder, metadata2=placeholder):
+    titles = [title1, title2]
+    metadata = [metadata1, metadata2]
+    with open(alignmentfile, "r") as file:
+        alignment = file.readlines()
+    new_alignment = []
+    for line_no in range(len(alignment)):
+        modified_line = False
+        if ">" in alignment[line_no]:
+            new_alignment.append(alignment[line_no].replace(
+                ">", ">"+"P1;"+titles.pop(0)))
+            modified_line = True
+            curr_metadata = metadata.pop(0)
+            if curr_metadata is not None:
+                new_alignment.append(curr_metadata+os.linesep)
+        line = alignment[line_no]
+        if ">" not in line and ":" not in line and ";" not in line:
+            if not line.strip().endswith("*"):
+                new_alignment.append(line.strip()+"*"+os.linesep)
+                modified_line = True
+        if modified_line is False:
+            new_alignment.append(alignment[line_no])
+    with open(alignmentfile, "w") as file:
+        file.writelines(new_alignment)
+
+
+def fasta(fasta_name, include_metadata=False):
+    out = []
+    fastadata = []
+    metadata = None
+    with open(fasta_name) as file:
+        for line in file:
+            if line[0] == ">":
+                header = line.strip()
+                if fastadata != [] and fastadata != ['']:
+                    out.append([header, fastadata])
+                    fastadata = []
+            if ":" in line and ">" not in line:
+                if include_metadata:
+                    metadata = line.strip()
+                else:
+                    continue
+            if ":" not in line and ">" not in line:
+                fastadata.append(line.strip())
+        if fastadata != [] and fastadata != ['']:
+            out.append([header, "".join(fastadata), metadata])
+    if out == []:
+        raise IOError("Couldn't read FASTA data in "+fasta_name)
+    return out
+
+
+def get_best_pdb(directory):
+    pdbs = list(pathlib.Path(directory).glob('*.pdb'))
+    scores = {}
+    for pdb in pdbs:
+        with open(pdb, "r") as file:
+            for line in file:
+                if "OBJECTIVE FUNCTION" in line:
+                    score = line.split(" ")[-1]
+                    scores[pdb] = float(score)
+    return str(max(scores, key=scores.get))
+
+
+def fix_missing_atoms(inmodel, outmodel, mdlformat="MMCIF"):
+
+    env = modeller.Environ()
+    env.libs.topology.read(file='$(LIB)/top_heav.lib')
+    env.libs.parameters.read(file='$(LIB)/par.lib')
+
+    mdl = modeller.scripts.complete_pdb(env, inmodel)
+
+    mdl.write(outmodel, mdlformat)
+
+
+# note: the pdb file isn't a parameter, it must be called code.pdb
+def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
+                         wdir):
+    print("Fixing missing residues...")
+
+    if not os.path.isdir(wdir):
+        pathlib.Path(wdir).mkdir(parents=True, exist_ok=True)
+    os.chdir(wdir)
+    try:
+        shutil.copy(inmodel, wdir)
+    except shutil.SameFileError:
+        pass
+
+    pdb_dirs = ['.', '../atom_files']
+
+    if fastafile:
+        modeller.log.none()
+        env = modeller.Environ()
+        model = modeller.Model(env, file=inmodel)
+        aln = modeller.Alignment(env)
+        aln.append_model(model, align_codes=code)
+        aln.write(file=code+'.seq')
+        print("Using provided fasta sequence to generate alignment.")
+        pdb_sequence = fasta(code+'.seq')
+        original_sequence = fasta(fastafile)
+        aln_metadata = fasta(code+'.seq', include_metadata=True)[0][2]
+
+        aligner = Align.PairwiseAligner()
+        try:
+            print("Aligning sequences...")
+            alignments = aligner.align(
+                pdb_sequence[0][1], original_sequence[0][1])
+            Align.write(alignments[-1], alignmentout, "fasta")
+            # the file doesn't have names/labels for whatever reason
+            retitle_alignment(alignmentout, code, code +
+                              "_fill", metadata1=aln_metadata)
+        except OverflowError:
+            print("Could not align sequences (normally this is because the sequences in the PDB and the original protein are too different)")
+            fastafile = None
+            print("Trying to use the sequence data in the input file instead...")
+
+    if not fastafile:
+        print("No fasta file supplied. Getting missing residues from input file...")
+        pdb_res = get_residues.get_residues_pdb(inmodel, code)
+        pdb_fullseq = get_residues.get_fullseq_pdb(inmodel, code)
+        with open(code+".seq", "w") as file:
+            file.write("".join(pdb_res))
+        with open(code+"_fill.seq", "w") as file:
+            file.write(pdb_fullseq)
+        env = modeller.environ()
+        print("Aligning sequences...")
+        aln = modeller.Alignment(env)
+        aln.append(file=code+".seq", align_codes=code)
+        aln.append(file=code+"_fill.seq", align_codes=code+"_fill")
+        aln.align2d()
+        aln.write(file=alignmentout)
+
+    env.io.atom_files_directory = pdb_dirs
+    print("Modelling missing loops...")
+    a = automodel(env, alnfile=alignmentout,
+                  knowns=code, sequence=code+"_fill")
+    a.auto_align()  # get an automatic alignment
+    a.make()
+
+    best_pdb = get_best_pdb(wdir)
+    shutil.copy2(best_pdb, outmodel)  # complete target filename given
+
+
+# todo: option for rosetta? https://blog.matteoferla.com/2020/07/filling-missing-loops-proper-way.html
+# todo: option for alphafold??? https://blog.matteoferla.com/2021/10/filling-missing-loops-by-cannibalising.html
+
+# fill missing residues
+# https://salilab.org/modeller/wiki/Missing_residues
+
+# refine loops
+# https://salilab.org/modeller/manual/node34.html
+
+# autodock for ligand binding - no search tools , do a positional search, give it a coordinate set
+# add data provinence to this
+# validation tools
+# set up default simulation
+# comparison between different setups

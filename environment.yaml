@@ -1,0 +1,14 @@
+# $ conda create --name <env> --file <this file>
+name: prep
+channels:
+  - defaults
+  - salilab
+  - conda-forge
+dependencies:
+  - python=3.13.3
+  - requests
+  - openmm=8.2.0
+  - pdbfixer=1.11
+  - gemmi=0.7.1
+  - modeller=10.7
+  - biopython=1.85
