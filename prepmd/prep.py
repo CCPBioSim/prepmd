@@ -18,27 +18,34 @@ from prepmd import fix
 from prepmd import model
 
 parser = argparse.ArgumentParser(prog="prepmd",
-                    description="Get structures from the PDB ready for molecular dynamics runs",
+                    description="Get structures from the PDB ready for "
+                    "molecular dynamics runs",
                     epilog="Also, run 'prepmd test' for the test suite")
 parser.add_argument("code", help="4 or 12-character PDB code")
 parser.add_argument("out", help="Output filename")
 parser.add_argument("-w", "--wdir", help="Working directory")
 parser.add_argument("-d", "--directory",
-                    help="Input directory (will automatically check for fasta sequences and structure files here)")
+    help="Input directory (will automatically check for fasta"
+        " sequences and structure files here)")
 parser.add_argument(
     "-f", "--fasta", help="Fasta sequence to use for filling loops")
 parser.add_argument("-s", "--structure",
                     help="Input structure file (pdb or mmCif)")
 parser.add_argument("-a", "--alignmentout",
-                    help="Alignment output file from sequences aligned for loop filling", default="alignment_out.fasta")
+    help="Alignment output file from sequences aligned for loop filling",
+    default="alignment_out.fasta")
 parser.add_argument("-fmt", "--format",
-                    help="Structure format to download (only used when no structure file is provided)", default="mmCif")
+    help="Structure format to download (only used when no structure file is "
+    "provided)",
+    default="mmCif")
 parser.add_argument(
     "-q", "--quiet", help="Do not print debug info", action="store_true")
 parser.add_argument("-e", "--fixstart",
-                    help="Fix pdb at the end of the process, not the start", action="store_true")
+        help="Fix pdb at the end of the process, not the start",
+        action="store_true")
 parser.add_argument("-dl", "--download",
-                    help="Download the sequence from UNIPROT instead of using the pdb or an external fasta file", action="store_true")
+        help="Download the sequence from UNIPROT instead of using the pdb or"
+        " an external fasta file", action="store_true")
 parser.add_argument("-m", "--leavemissing",
                     help="Don't restore missing atoms", action="store_true")
 
@@ -155,10 +162,6 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
                 "No sequence files found in folder or specified, could not"
                 "download sequence")
 
-    if not fastafile:
-        print("Fasta sequence: "+str(fastafile))
-
-    print("Filling in "+code)
     model.fix_missing_residues(code, fastafile, alignmentout,
                                inmodel, outmodel, workingdir)
     if fix_after:
@@ -169,7 +172,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     if ".pdb" in inmodel:
         fix.restore_metadata_pdb(inmodel, outmodel)
     if ".cif" in inmodel or ".mmcif" in inmodel:
-        print("not implemented yet")
+        print("Metadata restoration not implemented for mmCif (yet)")
 
     print("Testing "+code)
     run.test_sim(outmodel)
@@ -190,8 +193,13 @@ def entry_point():
          quiet=args.quiet, fix_after=fix_after,
          download_sequence=args.download, fix_missing_atoms=args.leavemissing)
 
-if __name__ == "__main__":
-    entry_point()
+
+def test_mmcif_support():
+    genid = id_generator(6)
+    prep("6xov",
+         os.getcwd()+os.path.sep+"6xov"+"_"+genid+".cif",
+         os.getcwd()+os.path.sep+"testout"+os.path.sep+"6xov"+"_"+genid,
+         structure_format="mmCif")
 
 def tests():
     os.system("")
@@ -247,5 +255,7 @@ def tests():
                 
     sys.exit(state)
 
+if __name__ == "__main__":
+    entry_point()
 
 # big todo: full and thorough mmcif support

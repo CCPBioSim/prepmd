@@ -40,7 +40,10 @@ def variable_minimise(pdb, out, max_iterations=1000, errortol=0.001):
         errortol: arbitrary openmm value
     """
     # platform, prop = get_prop()
-    pdb = PDBFile(pdb)
+    if ".cif" in pdb or ".mmcif" in pdb:
+        pdb = PDBxFile(pdb)
+    else:
+        pdb = PDBFile(pdb)
     forcefield = ForceField('charmm36.xml', 'charmm36/water.xml')
     system = forcefield.createSystem(pdb.topology,
                                      nonbondedMethod=app.NoCutoff,
@@ -68,7 +71,10 @@ def test_sim(pdb, minimise=10, steps=10, timestep=0.002*picoseconds):
         nothing. The only thing it might do is throw an error!
     """
     # platform, prop = get_prop()
-    pdb = PDBFile(pdb)
+    if ".cif" in pdb or ".mmcif" in pdb:
+        pdb = PDBxFile(pdb)
+    else:
+        pdb = PDBFile(pdb)
     forcefield = ForceField('charmm36.xml', 'charmm36/water.xml')
     system = forcefield.createSystem(pdb.topology,
                                      nonbondedMethod=app.NoCutoff,

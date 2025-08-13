@@ -10,7 +10,7 @@ from modeller import *
 
 def get_residues_pdb(pdb, code):
     """
-    Get the fasta sequence of residues in the ATOM entries of a PDB file.
+    Get the fasta sequence of residues in the ATOM entries of a PDB\mmCif file.
     Args:
         pdb: path to pdb file, a string
         code: PDB code
@@ -30,14 +30,17 @@ def get_residues_pdb(pdb, code):
 
 def get_fullseq_pdb(pdb, code):
     """
-    Get the fasta sequence of residues in the SEQRES records of a PDB file.
+    Get the fasta sequence of residues in the SEQRES records of a PDB/mmCif
+    file.
     Args:
-        pdb: path to pdb file, a string
+        pdb: path to pdb/mmcif file, a string
         code: PDB code
     Returns:
         the fasta sequence as a string
     """
     seqres = {}
+    
+    # pdb
     with open(pdb) as file:
         for line in file:
             if "SEQRES" in line:
@@ -47,6 +50,25 @@ def get_fullseq_pdb(pdb, code):
                     seqres[chain] = []
                 sequence = split[4:]
                 seqres[chain] += (sequence)
+    
+    # mmcif
+    if seqres == {}:
+        reading_seq = False
+        with open(pdb) as file:
+            for line in file:
+                if "_entity_poly_seq" in line:
+                    reading_seq = True
+                if reading_seq:
+                    if len(line.split()) == 4:
+                        chain = line.split()[0]
+                        if chain not in seqres.keys():
+                            seqres[chain] = []
+                        sequence = line.split()[2]
+                        seqres[chain] .append(sequence)
+                if line.startswith("#"):
+                    reading_seq = False
+                        
+    # convert to fasta
     fastas = []
     for chain, reses in seqres.items():
         fasta = ""
@@ -56,6 +78,8 @@ def get_fullseq_pdb(pdb, code):
         fastas.append(fasta)
     fasta_joined = "/".join(fastas)
     chains = ":::::::::"
+    if fastas == []:
+        raise IOError("Couldn't get full sequence from contents of "+pdb)
     return ">P1;"+code+"_fill\n"+chains+"\n"+fasta_joined+"*"
 
 # DEPRECATED
