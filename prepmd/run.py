@@ -7,10 +7,10 @@ Use openmm to run simulations
 from openmm.app import *
 from openmm import *
 from openmm.unit import *
-from sys import stdout
-import time
-import json
-import sys
+#from sys import stdout
+#import time
+#import json
+#import sys
 
 
 def get_prop():
@@ -30,7 +30,7 @@ def get_prop():
     return platform, prop
 
 
-def variable_minimise(pdb, out, max_iterations=1000, errortol=0.001):
+def variable_minimise(pdb, out, max_iterations=1000, errortol=0.001, steps=50):
     """
     Minimise structure with openmm, with a variable langevin integrator.
     Args:
@@ -41,25 +41,30 @@ def variable_minimise(pdb, out, max_iterations=1000, errortol=0.001):
     """
     # platform, prop = get_prop()
     if ".cif" in pdb or ".mmcif" in pdb:
-        pdb = PDBxFile(pdb)
+        structure = PDBxFile(pdb)
+        writer = PDBxFile
     else:
-        pdb = PDBFile(pdb)
+        structure = PDBFile(pdb)
+        writer = PDBFile
     forcefield = ForceField('charmm36.xml', 'charmm36/water.xml')
-    system = forcefield.createSystem(pdb.topology,
+    system = forcefield.createSystem(structure.topology,
                                      nonbondedMethod=app.NoCutoff,
                                      nonbondedCutoff=1*nanometer,
                                      constraints=HBonds)
     integrator = VariableLangevinIntegrator(300*kelvin, 1/picosecond, errortol)
-    simulation = Simulation(pdb.topology, system, integrator)
-    simulation.context.setPositions(pdb.positions)
+    simulation = Simulation(structure.topology, system, integrator)
+    simulation.context.setPositions(structure.positions)
     simulation.reporters.append(PDBReporter('output.pdb', 5000))
     simulation.minimizeEnergy(maxIterations=max_iterations)
-    PDBFile.writeModel(pdb.topology, simulation.context.getState(
+    simulation.step(steps)
+    simulation.minimizeEnergy(maxIterations=50)
+    print("Fixed explosion.")
+    writer.writeModel(structure.topology, simulation.context.getState(
         getPositions=True).getPositions(asNumpy=True),
         file=open(out, "w"), keepIds=True)
 
 
-def test_sim(pdb, minimise=10, steps=10, timestep=0.002*picoseconds):
+def test_sim(pdb, minimise=10, steps=50, timestep=0.002*picoseconds):
     """
     Run a short test simulation with openmm.
     Args:
@@ -72,16 +77,21 @@ def test_sim(pdb, minimise=10, steps=10, timestep=0.002*picoseconds):
     """
     # platform, prop = get_prop()
     if ".cif" in pdb or ".mmcif" in pdb:
-        pdb = PDBxFile(pdb)
+        structure = PDBxFile(pdb)
     else:
-        pdb = PDBFile(pdb)
+        structure = PDBFile(pdb)
     forcefield = ForceField('charmm36.xml', 'charmm36/water.xml')
-    system = forcefield.createSystem(pdb.topology,
+    system = forcefield.createSystem(structure.topology,
                                      nonbondedMethod=app.NoCutoff,
                                      nonbondedCutoff=1*nanometer,
                                      constraints=HBonds)
     integrator = LangevinMiddleIntegrator(300*kelvin, 1/picosecond, timestep)
-    simulation = Simulation(pdb.topology, system, integrator)
-    simulation.context.setPositions(pdb.positions)
+    simulation = Simulation(structure.topology, system, integrator)
+    simulation.context.setPositions(structure.positions)
     simulation.minimizeEnergy(maxIterations=minimise)
-    simulation.step(steps)
+    try:
+        simulation.step(steps)
+        print("Test simulation ran successfully.")
+    except OpenMMException:
+        print("Simulation blew up, trying adaptive minimisation...")
+        variable_minimise(pdb, pdb, max_iterations=1000, errortol=0.001)

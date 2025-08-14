@@ -6,8 +6,8 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * [X] Automatically fill missing loops with modeller
 * [X] Automatically add missing atoms and convert non-standard residues (using pdbfixer)
 * [X] Automatically propagate metadata through to finalised structure files
+* [X] Automatically resolve steric clashes
 * [ ] Automatically dock ligands
-* [ ] Automatically resolve steric clashes
 * [ ] AIIDA integration
 
 ## Installation

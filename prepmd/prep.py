@@ -201,6 +201,12 @@ def test_mmcif_support():
          os.getcwd()+os.path.sep+"testout"+os.path.sep+"6xov"+"_"+genid,
          structure_format="mmCif")
 
+def test_minimise():
+    genid = id_generator(6)
+    prep("6TY4",
+         os.getcwd()+os.path.sep+"6TY4"+"_"+genid+".cif",
+         os.getcwd()+os.path.sep+"testout"+os.path.sep+"6TY4"+"_"+genid)
+
 def tests():
     os.system("")
     class style():
@@ -214,7 +220,9 @@ def tests():
         UNDERLINE = '\033[4m'
         RESET = '\033[0m'
 
-    testinputs = ["6xov", "9CS5", "8RM8", ]#"8VV2", "9B8B", "8CAE", "8QZA", "8RTL", "8RTO", "9A9W"]
+    #testinputs = ["6xov", "9CS5", "8RM8", ]#"8VV2", "9B8B", "8CAE", "8QZA", "8RTL", "8RTO", "9A9W"] # regular pdbs
+    testinputs = ["6TY4"] # clash
+    
     results = {}
     state = 0
     cwd = os.getcwd()
