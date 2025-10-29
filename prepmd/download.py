@@ -20,13 +20,23 @@ def get_structure(pdb_id, directory, file_format="mmCif"):
     returns:
         path to the downloaded file.
     """
-    if file_format == "mmCif":
+    
+    if file_format == "mmCif" or file_format == "cif":
         format_str = "cif"
     if file_format == "pdb":
         format_str = "pdb"
-    urllib.request.urlretrieve("https://files.rcsb.org/download/" +
-                               pdb_id+"."+format_str, directory+sep+pdb_id +
-                               "."+format_str)
+    try:
+        url = "https://files.rcsb.org/download/"+pdb_id+"."+format_str
+        destination = directory+sep+pdb_id+"."+format_str
+        urllib.request.urlretrieve(url, destination)
+    except urllib.error.HTTPError as e:
+        r = requests.get(url.replace(".pdb", ".cif"))
+        if r.status_code == 200:
+            msg = "No PDB for "+pdb_id+" exists (but an mmcif structure does). "
+            "Run with --fmt cif to use it."
+            raise IOError(msg)
+        else:
+            raise e
     return directory+sep+pdb_id+"."+format_str
 
 

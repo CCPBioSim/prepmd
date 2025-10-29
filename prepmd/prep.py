@@ -11,6 +11,7 @@ import glob
 import random
 import string
 import sys
+import shutil
 
 from prepmd import download
 from prepmd import run
@@ -34,10 +35,10 @@ parser.add_argument("-s", "--structure",
 parser.add_argument("-a", "--alignmentout",
     help="Alignment output file from sequences aligned for loop filling",
     default="alignment_out.fasta")
-parser.add_argument("-fmt", "--format",
+parser.add_argument("-fmt", "--dlformat",
     help="Structure format to download (only used when no structure file is "
     "provided)",
-    default="mmCif")
+    default=None)
 parser.add_argument(
     "-q", "--quiet", help="Do not print debug info", action="store_true")
 parser.add_argument("-e", "--fixstart",
@@ -62,17 +63,8 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
-#def run_test(code, wdir):
-#    params = {"code": code,
-#              'outmodel': "/home/rob/temp/missingresiduestestrun/"+code+"_ready.pdb",
-#              "workingdir": "/home/rob/temp/missingresiduestestrun/"+code+"_"+id_generator(6)
-#              }
-#    prep(params["code"], params["outmodel"],
-#         params["workingdir"], structure_format="pdb")
-
-
 def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
-         alignmentout="alignment_out.fasta", structure_format="mmCif",
+         alignmentout="alignment_out.fasta", download_format="mmCif",
          quiet=False, fix_after=True, download_sequence=False,
          fix_missing_atoms=True):
     """
@@ -89,7 +81,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         inmodel: path to input structure file, a string.
         alignmentout: output file from the alignment of the sequence from the
         structure file and the original sequence.
-        structure_format: format of the structure file, a string. Can be
+        download_format: format of the structure file, a string. Can be
         'mmCif' or 'pdb'.
         quiet: if true, don't print anything. boolean
         fix_after: if true, fix the pdb file after loop building. If false,
@@ -102,10 +94,36 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     Returns:
         nothing, but writes out a file to outmodel.
     """
+    
+    # infer download format from output format
+    if not download_format:
+        if (".pdb") in outmodel:
+            download_format = "pdb"
+        elif (".cif") in outmodel or ".mmcif" in outmodel or (
+                ".pdbx") in outmodel:
+            download_format = "mmCif"
+    
+    # check that input/output are specified in the same format
+    # i'm not against converting the files but it shouldn't happen implicitly
+    in_string = lambda substr, text : text == None or substr in text.lower()
+    if in_string(".pdb", inmodel) and in_string(
+            ".pdb", outmodel) and in_string("pdb", download_format):
+        pass
+    elif in_string(".cif", inmodel) and in_string(
+            ".cif", outmodel) and in_string("cif", download_format):
+        pass
+    else:
+        raise IOError("Inputs and outputs are in different formats! Please "
+                      "use only one format (ideally cif)" )
 
     if not os.path.isdir(workingdir):
         pathlib.Path(workingdir).mkdir(parents=True, exist_ok=True)
 
+    if inmodel:
+        # todo: copy input file to working directory
+        shutil.copyfile(inmodel, workingdir+os.path.sep+inmodel)
+
+    run_dir = os.getcwd()
     os.chdir(workingdir)
 
     # check folder for strucutre/sequence files
@@ -129,7 +147,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     if code and inmodel == None and folder == None:
         print("Downloading structure file")
         inmodel = download.get_structure(
-            code, workingdir, file_format=structure_format)
+            code, workingdir, file_format=download_format)
 
     # fix
     if not fix_after:
@@ -174,9 +192,12 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     if ".cif" in inmodel or ".mmcif" in inmodel:
         print("Metadata restoration not implemented for mmCif (yet)")
 
-    print("Testing "+code)
+    print("Simulating "+code)
     run.test_sim(outmodel)
-    print("Wrote "+outmodel)
+    print("Done.")
+    
+    if not os.path.isabs(outmodel):
+        shutil.copyfile(outmodel, run_dir+os.path.sep+outmodel)
     
 def entry_point():
     "CLI entry point function. Uses sys.argv and argparse args object."
@@ -189,7 +210,7 @@ def entry_point():
         args.wdir = args.code+"_"+id_generator(6)
     prep(args.code, args.out, os.getcwd()+os.path.sep+args.wdir,
          folder=args.directory, fastafile=args.fasta, inmodel=args.structure,
-         alignmentout=args.alignmentout, structure_format=args.format,
+         alignmentout=args.alignmentout, download_format=args.dlformat,
          quiet=args.quiet, fix_after=fix_after,
          download_sequence=args.download, fix_missing_atoms=args.leavemissing)
 
@@ -199,7 +220,7 @@ def test_mmcif_support():
     prep("6xov",
          os.getcwd()+os.path.sep+"6xov"+"_"+genid+".cif",
          os.getcwd()+os.path.sep+"testout"+os.path.sep+"6xov"+"_"+genid,
-         structure_format="mmCif")
+         download_format="mmCif")
 
 def test_minimise():
     genid = id_generator(6)
@@ -221,29 +242,48 @@ def tests():
         RESET = '\033[0m'
 
     #testinputs = ["6xov", "9CS5", "8RM8", ]#"8VV2", "9B8B", "8CAE", "8QZA", "8RTL", "8RTO", "9A9W"] # regular pdbs
-    testinputs = ["6TY4"] # clash
+    #testinputs = ["6TY4", "6XOV", "9CS5", "8CAE", "8QZA", "8RTO"]
+    
+    tests = [
+        {"id": "6TY4", "format":"pdb"},
+        {"id": "6XOV", "format":"pdb"},
+        {"id": "9CS5", "format":"pdb"},
+        {"id": "8CAE", "format":"pdb"},
+        {"id": "8QZA", "format":"pdb"},
+        {"id": "8RTO", "format":"mmCif"},
+        {"id": "7IB8", "format":"mmCif"},
+        {"id": "9A9G", "format":"mmCif"},
+        {"id": "9I3U", "format":"pdb"},
+        #test_minimise,
+        #test_mmcif_support
+    ]
+    #testinputs = ["8rto"]
     
     results = {}
     state = 0
     cwd = os.getcwd()
 
-    for test in range(len(testinputs)):
+    for test in range(len(tests)):
         try:
             os.chdir(cwd)
-            code = testinputs[test]
-            print(f"Testing {code} ({test}/{len(testinputs)})")
+            code = tests[test]["id"]
+            curr_format =  tests[test]["format"]
+            print(f"Testing {code} ({test}/{len(tests)})")
             genid = id_generator(6)
             pathlib.Path(os.getcwd()+os.path.sep+"testout").mkdir(
                 parents=True, exist_ok=True)
-            prep(code,
-                 os.getcwd()+os.path.sep+testinputs[test]+"_"+genid+".pdb",
-                 os.getcwd()+os.path.sep+"testout"+os.path.sep+code+"_"+genid,
-                 structure_format="pdb")
+            if type(tests[test]) == dict:
+                prep(code,
+                     os.getcwd()+os.path.sep+code+"_"+genid+"."+"cif",
+                     os.getcwd()+os.path.sep+"testout"+os.path.sep+code+"_"+genid,
+                     download_format=curr_format)
+            elif callable(tests[test]):
+                test()
             print(f"{style.GREEN}PASSED: {test} {style.RESET}")
-            results[testinputs[test]] = "PASS"
+            results[code] = "PASS"
         except Exception as e:
-            print(f"{style.RED}FAILED: {testinputs[test]}{style.RESET}")
-            results[testinputs[test]] = e
+            print(f"{style.RED}FAILED: {test}{style.RESET}")
+            results[code] = e
             state = 1
     print("")
     print("RESULTS:")

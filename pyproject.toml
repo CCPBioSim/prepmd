@@ -16,4 +16,5 @@ readme = "README.md"
 license = "AGPL-3.0-or-later"
 
 [project.scripts]
-prepmd = "prepmd.prepmd:entry_point"
+prepmd = "prepmd.prep:entry_point"
+runmd = "prepmd.run:entry_point"

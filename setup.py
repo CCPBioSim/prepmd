@@ -28,7 +28,7 @@ setup(
 #    package_data={'extra': extra_files},
 #    zip_safe=False,
     entry_points={
-        'console_scripts': ['prepmd=prepmd.prepmd:entry_point'],
+        'console_scripts': ['prepmd=prepmd.prep:entry_point', 'runmd=prepmd.run:entry_point'],
     },
 #    install_requires=["matplotlib", "numpy", "glob2", "more-itertools"]
 )

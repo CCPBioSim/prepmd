@@ -187,7 +187,7 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
             print("Trying to use the sequence data in the input file...")
 
     if not fastafile:
-        print("No fasta file. Getting missing residues from input file...")
+        print("Getting missing residues from input file...")
         pdb_res = get_residues.get_residues_pdb(inmodel, code)
         pdb_fullseq = get_residues.get_fullseq_pdb(inmodel, code)
         with open(code+".seq", "w") as file:
