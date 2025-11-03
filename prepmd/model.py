@@ -10,6 +10,7 @@ import os
 import pathlib
 import shutil
 from prepmd import get_residues
+import sys
 
 placeholder = "sequence:::::::::"
 
@@ -158,8 +159,9 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
 
     pdb_dirs = ['.', '../atom_files']
 
+    modeller.log.none()
+    
     if fastafile:
-        modeller.log.none()
         env = modeller.Environ()
         model = modeller.Model(env, file=inmodel)
         aln = modeller.Alignment(env)
@@ -175,6 +177,7 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
             print("Aligning sequences...")
             alignments = aligner.align(
                 pdb_sequence[0][1], original_sequence[0][1])
+            print("Succesfully aligned.")
             Align.write(alignments[-1], alignmentout, "fasta")
             # the file doesn't have names/labels for whatever reason
             retitle_alignment(alignmentout, code, code +
@@ -184,7 +187,7 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
                   "sequences in the PDB and the original protein are too "
                   "different)")
             fastafile = None
-            print("Trying to use the sequence data in the input file...")
+            print("Will try to use the sequence data in the input file...")
 
     if not fastafile:
         print("Getting missing residues from input file...")
@@ -199,11 +202,16 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
         aln = modeller.Alignment(env)
         aln.append(file=code+".seq", align_codes=code)
         aln.append(file=code+"_fill.seq", align_codes=code+"_fill")
-        aln.align2d()
+        aln.salign()
+        print("Succesfully aligned.", end="")
         aln.write(file=alignmentout)
+        print(" Wrote alignment to "+alignmentout)
 
     env.io.atom_files_directory = pdb_dirs
     print("Modelling missing loops...")
+    old_stdout = sys.stdout
+    f = open(os.devnull, 'w')
+    sys.stdout = f
     a = automodel(env, alnfile=alignmentout,
                   knowns=code, sequence=code+"_fill")
     a.auto_align()
@@ -212,6 +220,9 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
         a.set_output_model_format("MMCIF")
     
     a.make()
+    
+    sys.stdout = old_stdout
+    print("Finished modelling missing loops.")
 
     best_pdb = get_best_pdb(wdir)
     shutil.copy2(best_pdb, outmodel)

@@ -11,6 +11,8 @@ from operator import methodcaller
 import argparse
 import sys
 import json
+import os
+import pathlib
 #from sys import stdout
 #import time
 #import json
@@ -256,6 +258,9 @@ def run(pdb,
             raise ValueError("AMOEBA can't be run with the specified non " 
                              "bonded method without a simulation box. Try "
                              "running a solvated simulation instead.")
+    
+    if not solvent:
+        print("WARNING: No solvent")
 
     # read in mmcif or pdb
     if ".cif" in pdb or ".mmcif" in pdb:
@@ -419,19 +424,119 @@ def run(pdb,
         print("Wrote checkpoint to "+checkpoint_output)
 
 
-def tests():
-    print("No tests!")
+# no longer used, will be removed soon
+# use pytest instead
+
+# def tests():
+    
+#     file_path = os.path.realpath(__file__)
+#     sep = os.path.sep
+#     test_file = os.path.dirname(file_path)+sep+"test_data"+sep+"101M_proc.cif"
+#     out_dir = "/tmp/prepmdtest/"
+#     results = {}
+    
+#     if not os.path.isdir(out_dir):
+#         pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
+        
+#     print('path =', test_file)
+    
+    
+#     try:
+#         run(test_file,
+#             traj_out=out_dir+"101M_proc.xtc", md_steps=100, step=25,
+#             solvent=None, pressure=None, minimise=False, test_run=False,
+#             write_params=out_dir+sep+"params.json",
+#             thermo_out_file=out_dir+sep+"thermo.txt",
+#             checkpoint_output=out_dir+sep+"checkpoint.dat")
+#         results["Basic"] = "Ran successfully"
+#     except Exception as e:
+#         results["Basic"] = str(e)
+
+#     try:
+#         run(test_file, minimised_structure_out=out_dir+"101m_prof_min.cif",
+#             traj_out=out_dir+"101M_proc.xtc", md_steps=100, step=25,
+#             solvent=None, pressure=None,
+#             write_params=out_dir+sep+"params.json",
+#             thermo_out_file=out_dir+sep+"thermo.txt",
+#             checkpoint_output=out_dir+sep+"checkpoint.dat")
+#         results["Minimise/test run"] = "Ran successfully"
+#     except Exception as e:
+#         results["Minimise/test run"] = str(e)
+
+#     try:
+#         run(test_file,
+#             traj_out=out_dir+"101M_proc.xtc", md_steps=10, step=2,
+#             integrator="VariableLangevinIntegrator",
+#             solvent="tip4pew", pressure=1.0*bar, minimise=False,
+#             test_run=False,
+#             write_params=out_dir+sep+"params.json",
+#             thermo_out_file=out_dir+sep+"thermo.txt",
+#             checkpoint_output=out_dir+sep+"checkpoint.dat")
+#         results["Variable langevin, tip4pew, pressure"] = "Ran successfully"
+#     except Exception as e:
+#         results["Variable langevin, tip4pew, pressure"] = str(e)
+
+#     try:
+#         run(test_file,
+#             traj_out=out_dir+"101M_proc.xtc", md_steps=5, step=1,
+#             solvent="tip3p", forcefield="amber14", minimise=False,
+#             test_run=False,
+#             write_params=out_dir+sep+"params.json",
+#             thermo_out_file=out_dir+sep+"thermo.txt",
+#             checkpoint_output=out_dir+sep+"checkpoint.dat")
+#         results["Amber14"] = "Ran successfully"
+#     except Exception as e:
+#         results["Amber14"] = str(e)
+    
+#     try:
+#         run(test_file,
+#             traj_out=out_dir+"101M_proc.xtc", md_steps=5, step=1,
+#             solvent="tip4pew", pressure=1.0*bar, forcefield="amber14",
+#             fix_backbone=True, minimise=False, test_run=False,
+#             write_params=out_dir+sep+"params.json",
+#             thermo_out_file=out_dir+sep+"thermo.txt",
+#             checkpoint_output=out_dir+sep+"checkpoint.dat")
+#         results["Fix backbone"] = "Ran successfully"
+#     except Exception as e:
+#         results["Fix backbone"] = str(e)
+        
+#     print("")
+#     print("Test results:")
+        
+#     for name, result in results.items():
+#         print(name+": "+result)
+    
+#    runmd 101M_proc.cif -o 101M_proc_min.cif --traj_out 101M_proc.xtc --md_steps 500 --step 50
+
+#    runmd 101M_proc.cif -o 101M_proc_min.cif --traj_out 101M_proc.xtc --md_steps 5000 --step 50 --nomin --notest # error - minimised structure requested
+    
+    # run from an already-minimised structure
+#    runmd 101M_proc.cif --traj_out 101M_proc.xtc --md_steps 5000 --step 50 -nomin -notest
+    
+    # solvated
+#    runmd 101M_proc.cif -o 101M_proc_min.cif --traj_out 101M_proc.xtc --md_steps 500 --step 50 -solv tip4pew
+    
+    # solvated with pressure # TODO: seems to be broken on my openmm version (which is a nightly build i think)
+#    runmd 101M_proc.cif -o 101M_proc_min.cif --traj_out 101M_proc.xtc --md_steps 500 --step 50 -solv tip4pew -p 1.0
+    
+    # run with amber14 instead
+#    runmd 101M_proc.cif -o 101M_proc_min.cif --traj_out 101M_proc.xtc --md_steps 500 --step 50 -ff amber14
+    
+    # fix the backbone and minimise to resolve the side chain positions
+#    runmd 101M_proc.cif -o 101M_proc_min.cif --fix_backbone -solv tip4pew --notest
+    
+#    sys.exit()
 
 
 def entry_point():
     "CLI entry point function. Uses sys.argv and argparse args object."
-    if len(sys.argv) == 2:
-        if sys.argv[1] == "test":
-            tests()
+    #if len(sys.argv) == 2:
+    #    if sys.argv[1] == "test":
+    #        tests()
             
     parser = argparse.ArgumentParser(prog="runmd",
-                        description="Run MD simulations",
-                        epilog="Also, run 'runmd test' for the test suite")
+                        description="Run MD simulations")
+                        #epilog="Also, run 'runmd test' for the test suite")
     parser.add_argument("pdb", help="Input filename (pdb or mmcif)")
     parser.add_argument("-o", "--min_out", help="filename to write the final minimised structure to (pdb or mmCif)", default=None)
     parser.add_argument("-tr", "--traj_out", help="Production MD trajectory output file. Can be in DCD or XTC format.", default=None)

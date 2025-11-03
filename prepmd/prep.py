@@ -10,7 +10,7 @@ import os
 import glob
 import random
 import string
-import sys
+#import sys
 import shutil
 
 from prepmd import download
@@ -20,8 +20,8 @@ from prepmd import model
 
 parser = argparse.ArgumentParser(prog="prepmd",
                     description="Get structures from the PDB ready for "
-                    "molecular dynamics runs",
-                    epilog="Also, run 'prepmd test' for the test suite")
+                    "molecular dynamics runs")
+#                    epilog="Also, run 'prepmd test' for the test suite")
 parser.add_argument("code", help="4 or 12-character PDB code")
 parser.add_argument("out", help="Output filename")
 parser.add_argument("-w", "--wdir", help="Working directory")
@@ -94,14 +94,16 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     Returns:
         nothing, but writes out a file to outmodel.
     """
-    
+
     # infer download format from output format
     if not download_format:
         if (".pdb") in outmodel:
             download_format = "pdb"
+            print("No download format specified, downloading PDB.")
         elif (".cif") in outmodel or ".mmcif" in outmodel or (
                 ".pdbx") in outmodel:
             download_format = "mmCif"
+            print("No download format specified, downloading mmCif.")
     
     # check that input/output are specified in the same format
     # i'm not against converting the files but it shouldn't happen implicitly
@@ -148,6 +150,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         print("Downloading structure file")
         inmodel = download.get_structure(
             code, workingdir, file_format=download_format)
+        print("Downloaded to "+inmodel)
 
     # fix
     if not fix_after:
@@ -201,9 +204,9 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     
 def entry_point():
     "CLI entry point function. Uses sys.argv and argparse args object."
-    if len(sys.argv) == 2:
-        if sys.argv[1] == "test":
-            tests()
+#    if len(sys.argv) == 2:
+#        if sys.argv[1] == "test":
+#            tests()
     args = parser.parse_args()
     fix_after = not args.fixstart
     if args.wdir is None:
@@ -228,80 +231,82 @@ def test_minimise():
          os.getcwd()+os.path.sep+"6TY4"+"_"+genid+".cif",
          os.getcwd()+os.path.sep+"testout"+os.path.sep+"6TY4"+"_"+genid)
 
-def tests():
-    os.system("")
-    class style():
-        RED = '\033[31m'
-        GREEN = '\033[32m'
-        YELLOW = '\033[33m'
-        BLUE = '\033[34m'
-        MAGENTA = '\033[35m'
-        CYAN = '\033[36m'
-        WHITE = '\033[37m'
-        UNDERLINE = '\033[4m'
-        RESET = '\033[0m'
 
-    #testinputs = ["6xov", "9CS5", "8RM8", ]#"8VV2", "9B8B", "8CAE", "8QZA", "8RTL", "8RTO", "9A9W"] # regular pdbs
-    #testinputs = ["6TY4", "6XOV", "9CS5", "8CAE", "8QZA", "8RTO"]
-    
-    tests = [
-        {"id": "6TY4", "format":"pdb"},
-        {"id": "6XOV", "format":"pdb"},
-        {"id": "9CS5", "format":"pdb"},
-        {"id": "8CAE", "format":"pdb"},
-        {"id": "8QZA", "format":"pdb"},
-        {"id": "8RTO", "format":"mmCif"},
-        {"id": "7IB8", "format":"mmCif"},
-        {"id": "9A9G", "format":"mmCif"},
-        {"id": "9I3U", "format":"pdb"},
-        #test_minimise,
-        #test_mmcif_support
-    ]
-    #testinputs = ["8rto"]
-    
-    results = {}
-    state = 0
-    cwd = os.getcwd()
+# note: deprecated now that ctest support has been added
+# will be removed!!!
 
-    for test in range(len(tests)):
-        try:
-            os.chdir(cwd)
-            code = tests[test]["id"]
-            curr_format =  tests[test]["format"]
-            print(f"Testing {code} ({test}/{len(tests)})")
-            genid = id_generator(6)
-            pathlib.Path(os.getcwd()+os.path.sep+"testout").mkdir(
-                parents=True, exist_ok=True)
-            if type(tests[test]) == dict:
-                prep(code,
-                     os.getcwd()+os.path.sep+code+"_"+genid+"."+"cif",
-                     os.getcwd()+os.path.sep+"testout"+os.path.sep+code+"_"+genid,
-                     download_format=curr_format)
-            elif callable(tests[test]):
-                test()
-            print(f"{style.GREEN}PASSED: {test} {style.RESET}")
-            results[code] = "PASS"
-        except Exception as e:
-            print(f"{style.RED}FAILED: {test}{style.RESET}")
-            results[code] = e
-            state = 1
-    print("")
-    print("RESULTS:")
-    for name, result in results.items():
-            if result == "PASS":
-                print(f"{name}: {style.GREEN}{result}{style.RESET}")
-            else:
-                errtype = type(result).__name__,          # TypeError
-                errfile = __file__,                  # /tmp/example.py
-                errline = result.__traceback__.tb_lineno  # 2
-                error = str(errtype)+" on line " + \
-                    str(errline)+" in "+str(errfile)
-                print(f"{name}: {style.RED}{error}{style.RESET}")
-    for name, result in results.items():
-            if result != "PASS":
-                print(f"{style.YELLOW}{name} exception: {result}{style.RESET}")
+# def tests():
+#     os.system("")
+#     class style():
+#         RED = '\033[31m'
+#         GREEN = '\033[32m'
+#         YELLOW = '\033[33m'
+#         BLUE = '\033[34m'
+#         MAGENTA = '\033[35m'
+#         CYAN = '\033[36m'
+#         WHITE = '\033[37m'
+#         UNDERLINE = '\033[4m'
+#         RESET = '\033[0m'
+    
+#     tests = [
+#        # {"id": "6TY4", "format":"pdb"},
+#        # {"id": "6XOV", "format":"pdb"},
+#         {"id": "9CS5", "format":"pdb"},
+#         {"id": "8CAE", "format":"pdb"},
+#         {"id": "8QZA", "format":"pdb"},
+#         {"id": "8RTO", "format":"mmCif"},
+#         {"id": "7IB8", "format":"mmCif"},
+#         {"id": "9A9G", "format":"mmCif"},
+#         {"id": "9I3U", "format":"pdb"},
+#         #test_minimise,
+#         #test_mmcif_support
+#     ]
+    
+#     types = {"mmCif":"cif", "cif":"cif", "pdb":"pdb"}
+        
+#     results = {}
+#     state = 0
+#     cwd = os.getcwd()
+
+#     for test in range(len(tests)):
+#         try:
+#             os.chdir(cwd)
+#             code = tests[test]["id"]
+#             curr_format =  tests[test]["format"]
+#             print(f"Testing {code} ({test}/{len(tests)})")
+#             genid = id_generator(6)
+#             pathlib.Path(os.getcwd()+os.path.sep+"testout").mkdir(
+#                 parents=True, exist_ok=True)
+#             if type(tests[test]) == dict:
+#                 prep(code,
+#                      os.getcwd()+os.path.sep+code+"_"+genid+"."+types[curr_format],
+#                      os.getcwd()+os.path.sep+"testout"+os.path.sep+code+"_"+genid,
+#                      download_format=curr_format)
+#             elif callable(tests[test]):
+#                 test()
+#             print(f"{style.GREEN}PASSED: {test} {style.RESET}")
+#             results[code] = "PASS"
+#         except Exception as e:
+#             print(f"{style.RED}FAILED: {test}{style.RESET}")
+#             results[code] = e
+#             state = 1
+#     print("")
+#     print("RESULTS:")
+#     for name, result in results.items():
+#             if result == "PASS":
+#                 print(f"{name}: {style.GREEN}{result}{style.RESET}")
+#             else:
+#                 errtype = type(result).__name__,          # TypeError
+#                 errfile = __file__,                  # /tmp/example.py
+#                 errline = result.__traceback__.tb_lineno  # 2
+#                 error = str(errtype)+" on line " + \
+#                     str(errline)+" in "+str(errfile)
+#                 print(f"{name}: {style.RED}{error}{style.RESET}")
+#     for name, result in results.items():
+#             if result != "PASS":
+#                 print(f"{style.YELLOW}{name} exception: {result}{style.RESET}")
                 
-    sys.exit(state)
+#     sys.exit(state)
 
 if __name__ == "__main__":
     entry_point()
