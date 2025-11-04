@@ -12,7 +12,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 ## Installation
 * Install [Conda](https://conda-forge.org/download/) (if you don't already have it)
-* Clone this repo and enter the folder: `git clone git@github.com:HECBioSim/prepmd.git && cd prepmd` 
+* Clone this repo and enter the folder: `git clone https://github.com/CCPBioSim/mdprep.git && cd prepmd` 
 * Run `conda env create --name prepmd --file environment.yaml && conda activate prepmd && pip install .`
 * For the modeller part of the workflow to work, you need to get a [modeller license key](https://salilab.org/modeller/registration.html) and add it to modeller's config.py file. If you use conda, the key will be in `envs/prepmd/lib/modeller-10.7/modlib/modeller/config.py` relative to the path where conda is installed.
 
