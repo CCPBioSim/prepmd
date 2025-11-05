@@ -28,27 +28,30 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v5.0.0
 
-      - name: Set up Miniconda
+      - name: Cache conda packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conda/pkgs
+          key: ${{ runner.os }}-conda-${{ hashFiles('environment.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-
+
+      - name: Set up Mambaforge
         uses: conda-incubator/setup-miniconda@v3
         with:
+          use-mamba: true
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yaml
           activate-environment: prep
           auto-update-conda: true
           auto-activate-base: false
 
-      - name: Verify conda environment
+      - name: Verify environment
         shell: bash -l {0}
         run: |
           conda info
           conda list
 
-      - name: Install additional testing dependencies
-        shell: bash -l {0}
-        run: |
-          conda install -y pytest pytest-cov
-
       - name: Run test suite
         shell: bash -l {0}
-        run: |
-          pytest --cov=prepmd --cov-report=term-missing --cov-append .
+        run: pytest -v
