@@ -5,12 +5,12 @@ requires-python = ">= 3.13.3"
 authors = [{name = "Rob Welch", email = "robert.welch@stfc.ac.uk"}]
 description = "Automatically prepare pdb/mmCif structures for molecular dynamics simulations"
 dependencies = [
-  "requests",
-  "openmm==8.2.0",
-  "pdbfixer==1.11",
-  "gemmi==0.7.1",
-  #"modeller==10.7",
-  "biopython==1.85",
+#  "requests",
+#  "openmm==8.2.0",
+#  "pdbfixer==1.11",
+  #"gemmi==0.7.1",
+#  "modeller==10.7",
+#  "biopython==1.85",
 ]
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -18,3 +18,4 @@ license = "AGPL-3.0-or-later"
 [project.scripts]
 prepmd = "prepmd.prep:entry_point"
 runmd = "prepmd.run:entry_point"
+prep-license = "prepmd.add_modeller_license:entry_point"

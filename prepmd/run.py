@@ -31,17 +31,22 @@ ff_lookup = {
     "amber14,None": ['amber14-all.xml'],
     "charmm36,None": ['charmm36.xml'],
     "amoeba,None": ['amoeba2018.xml'],
-    "amber19,None": ['amber19-all.xml']
+    "amber19,None": ['amber19-all.xml'],
+    "amber19,implicit": ['amber19-all.xml', 'implicit/gbn2.xml'],
+    "amber14,implicit": ['amber14-all.xml', 'implicit/gbn2.xml'],
+    "charmm36,implicit": ['charmm36.xml', 'implicit/gbn2.xml'],
+    "amoeba,implicit": ['amoeba2018.xml', 'amoeba2009_gk.xml'],  
 }
 
 
 def make_forcefield(ff, solvent=None):
     if ff+","+str(solvent) not in ff_lookup.keys():
+        err = "Solvent "+str(solvent)+" not in list of available solvents."
         validff = set([item[0] for item in list(
             map(methodcaller("split", ","), ff_lookup.keys()))])
         validsolvent = set([item[1] for item in list(
             map(methodcaller("split", ","), ff_lookup.keys()))])
-        err = "Please pick a valid force field and solvent.\n"
+        err += "Please pick a valid force field and solvent.\n"
         err += "Valid force fields are "+str(validff)+"\n"
         err += "Valid solvents are "+str(validsolvent)+"\n"
         raise ValueError(err)
@@ -64,8 +69,8 @@ def check_platforms():
 
 def test_sim(pdb):
     run(pdb, minimised_structure_out=pdb, md_steps=None,
-        integrator="LangevinMiddleIntegrator", solvent=None,
-        pressure=None, test_sim_steps=50)
+        integrator="LangevinMiddleIntegrator",
+        pressure=None, test_sim_steps=250)
 
 
 def run(pdb,
@@ -84,7 +89,7 @@ def run(pdb,
         test_run=True,
         fix_backbone=False,
         constraints="Default",  # Default, None, HBonds
-        solvent="tip4pew",
+        solvent="implicit",
         strip_solvent=False,
         ionic_strength=0.1*molar,
         pressure=1*bar,
@@ -133,7 +138,8 @@ def run(pdb,
         None, HBonds. By default, HBonds will be constrained if the backbone
         is not fixed. A string.
         solvent - solvent to use. Possible values: None (no solvent), tip3p, 
-        tip4pew, spce. A string.
+        tip4pew, spce, implicit (gbn model, equivalent to AMBER igb=8). A
+        string.
         write_solvent: whether to write solvent atoms to the minimised
         structure file. Solvent will always be written to the trajectory. A
         bool.
@@ -195,7 +201,7 @@ def run(pdb,
                              "running a solvated simulation instead.")
 
     if not solvent:
-        print("WARNING: No solvent")
+        print("WARNING: No solvent. Minimised structures may be wrong!!!")
 
     # read in mmcif or pdb
     if ".cif" in pdb or ".mmcif" in pdb:
@@ -209,7 +215,7 @@ def run(pdb,
 
     forcefield = make_forcefield(forcefield, solvent)
 
-    if solvent:
+    if solvent and solvent != "implicit":
         print("Solvating system...")
         modeller.addSolvent(forcefield, model=solvent,
                             ionicStrength=ionic_strength,
@@ -231,7 +237,7 @@ def run(pdb,
 
     # setup non bonded method - if none is chosen, select based on box
     if non_bonded_method == "Default":
-        if solvent is None:
+        if solvent == None or solvent == "implicit":
             non_bonded_method = CutoffNonPeriodic
         else:
             non_bonded_method = PME
@@ -282,6 +288,9 @@ def run(pdb,
         raise ValueError("Integrator must be one of: "
                          "VariableLangevinIntegrator,"
                          " LangevinMiddleIntegrator")
+    
+    # TODO: create metadynamics object here
+    
     simulation = Simulation(modeller.topology, system, integrator)
     simulation.context.setPositions(modeller.positions)
 
@@ -336,6 +345,8 @@ def run(pdb,
                              " minimisation and test run were both skipped.")
 
     if md_steps and traj_out:
+        # todo: if metadynamics, add rmsd reporter here
+        
         if ".dcd" in traj_out.lower():
             simulation.reporters.append(DCDReporter(traj_out, step))
         elif ".xtc" in traj_out.lower():
@@ -350,6 +361,9 @@ def run(pdb,
                                                           step, step=True,
                                                           potentialEnergy=True,
                                                           temperature=True))
+
+    # TODO: if metadynamics, do meta.step here
+
         print("Running production MD...")
         simulation.step(md_steps)
         simulation.saveCheckpoint(checkpoint_output)
@@ -394,7 +408,7 @@ def entry_point():
                         help="Fix the backbone", action="store_true")
     parser.add_argument("-c", "--constraints", help="Constraints to apply. Possible values: None, HBonds. Constraining HBonds can make simulations run faster, at the cost of some accuracy. You can't constrain HBonds if you're also fixing the backbone, for obvious reasons.", default="Default")
     parser.add_argument(
-        "-solv", "--solvent", help="Solvent to use. Possible values: tip3p, tip4pew, spce. If no solvent is specified, none will be used.", default=None)
+        "-solv", "--solvent", help="Solvent to use. Possible values: tip3p, tip4pew, spce, implicit (GBn model, equivalent to AMBER igb=8). If no solvent is specified, implicit will be used.", default="implicit")
     parser.add_argument("-ns", "--strip_solvent",
                         help="Don't write solvent molecules to the minimised output file", action="store_true")
     parser.add_argument("-ion", "--ionic_strength",

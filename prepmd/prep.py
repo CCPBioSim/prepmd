@@ -100,7 +100,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     locals_json = json.dumps(locals_copy)
     
     # infer download format from output format
-    if not download_format:
+    if not download_format and not inmodel:
         if (".pdb") in outmodel:
             download_format = "pdb"
             print("No download format specified, downloading PDB.")
@@ -108,6 +108,15 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
                 ".pdbx") in outmodel:
             download_format = "mmCif"
             print("No download format specified, downloading mmCif.")
+    
+    #infer download format from input format
+    if not download_format and inmodel:
+        if (".pdb") in inmodel:
+            download_format = "pdb"
+        if ".cif" in inmodel or ".pdbx" in inmodel or ".mmcif" in inmodel:
+            download_format = "mmCif"
+
+        
 
     # check that input/output are specified in the same format
     # i'm not against converting the files but it shouldn't happen implicitly
@@ -126,7 +135,10 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         pathlib.Path(workingdir).mkdir(parents=True, exist_ok=True)
 
     if inmodel:
-        shutil.copyfile(inmodel, workingdir+os.path.sep+inmodel)
+        shutil.copyfile(inmodel, workingdir+os.path.sep+code+"."+download_format)
+        # note: modeller requires the filename to be the same as the pdb code
+        # so here we change the filename
+        inmodel = code+"."+download_format.replace("mmCif", "cif")
 
     run_dir = os.getcwd()
     os.chdir(workingdir)

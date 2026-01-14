@@ -3,9 +3,12 @@
 """
 Read residue information from structure files
 """
-
+NO_MODELLER = False
+try:
+    from modeller import *
+except:
+    NO_MODELLER = True
 from prepmd import util
-from modeller import *
 
 
 def get_residues_pdb(pdb, code):
@@ -18,6 +21,8 @@ def get_residues_pdb(pdb, code):
     Returns:
         the fasta sequence as a string
     """
+    if NO_MODELLER:
+        raise ImportError("Can't run without MODELLER and a valid license key")
     log.none()
     e = Environ()
     m = Model(e, file=pdb)
@@ -80,5 +85,6 @@ def get_fullseq_pdb(pdb, code):
     fasta_joined = "/".join(fastas)
     chains = ":::::::::"
     if fastas == []:
-        raise IOError("Couldn't get full sequence from contents of "+pdb)
+        raise IOError("Couldn't get full sequence from contents of "+pdb+". "
+                      "Does it contain a sequence?")
     return ">P1;"+code+"_fill\n"+chains+"\n"+fasta_joined+"*"

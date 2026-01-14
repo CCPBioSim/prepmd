@@ -5,4 +5,5 @@ from . import get_residues
 from . import util
 from . import prep
 from . import model
-__version__ = "0.2"
+from . import add_modeller_license
+__version__ = "0.3"

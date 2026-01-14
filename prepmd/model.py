@@ -3,9 +3,14 @@
 """
 Calls to the MODELLER API
 """
-import modeller
+NO_MODELLER = False
+try:
+    import modeller
+    from modeller.automodel import *
+except:
+    NO_MODELLER = True
+
 from Bio import Align
-from modeller.automodel import *
 import os
 import pathlib
 import shutil
@@ -102,10 +107,12 @@ def get_best_pdb(directory, exts=["pdb", "cif", "mmcif", "mmCif"]):
     Returns:
         path to the file with the highest objective function, a string
     """
+    
     pdbs = []
     for ext in exts:
         pdbs += list(pathlib.Path(directory).glob('*.'+ext))
     scores = {}
+    similarities = {}
     for pdb in pdbs:
         with open(pdb, "r") as file:
             for line in file:
@@ -117,6 +124,26 @@ def get_best_pdb(directory, exts=["pdb", "cif", "mmcif", "mmCif"]):
                 if "_modeller.objective_function" in line:
                     score = line.split()[-1]
                     scores[pdb] = float(score)
+                # pdb
+                if "BEST TEMPLATE" in line:
+                    similarities[pdb] = float(line.split()[-1])
+                # mmcif
+                if "_modeller.best_template_pct_seq_id" in line:
+                    similarities[pdb] = float(line.split()[-1])
+    max_sim = max(similarities.values())
+    if max_sim >= 97:
+        print("Similiarity: "+str(max_sim)+"%.")
+    if max_sim < 97 and max_sim >= 90:
+        print("WARNING: best sequence similarity is "+str(max_sim)+"%. "
+              "Modelled loops could be wrong. Please check them!")
+    if max_sim < 90 and max_sim >= 80:
+        print("SERIOUS WARNING: best sequence similarity is only "+
+              str(max_sim)+"%. Modelled loops may have the wrong sequence." )
+    if max_sim < 80:
+        raise ValueError("Sequences do not match. Cannot reconstruct missing "
+                         "loops. Please double-check your sequence data (by "
+                         "default these are the SEQRES records from the input "
+                         "structure.")
     return str(max(scores, key=scores.get))
 
 
@@ -136,6 +163,9 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
     Returns:
         nothing, but writes out outmodel and wdir.
     """
+    if NO_MODELLER:
+        raise ImportError("Can't fix without MODELLER and a valid license key")
+
     print("Fixing missing residues...")
 
     if not os.path.isdir(wdir):
