@@ -9,6 +9,8 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * [X] Automatically add missing atoms and fix non-standard residues with pdbfixer
 * [X] Automatically propagate metadata through to finalised structure files
 * [X] Automatically resolve steric clashes and minimise structures
+* [X] Run simple MD simulations for testing, validation and minimisation
+* [ ] Create 'morph' trajectories with metadynamics
 * [ ] AIIDA integration
 
 ## Installation

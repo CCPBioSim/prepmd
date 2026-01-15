@@ -204,11 +204,14 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         print("Fixing PDB")
         fix.fix(outmodel, outmodel, fix_missing_atoms=fix_missing_atoms)
 
-    print("Restoring metadata...")
-    if ".pdb" in inmodel:
-        fix.restore_metadata_pdb(inmodel, outmodel)
-    if ".cif" in inmodel or ".mmcif" in inmodel:
-        print("Metadata restoration not implemented for mmCif (yet)")
+    # TODO: why does this output broken pdbs?
+    # also - this was due for a refactor anyway
+    # maybe dump the data into another file instead
+    #print("Restoring metadata...")
+    #if ".pdb" in inmodel:
+    #    fix.restore_metadata_pdb(inmodel, outmodel)
+    #if ".cif" in inmodel or ".mmcif" in inmodel:
+    #    print("Metadata restoration not implemented for mmCif (yet)")
 
     print("Simulating "+code)
     run.test_sim(outmodel)

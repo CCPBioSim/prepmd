@@ -297,10 +297,29 @@ def run(pdb,
     # run simulation
     # try and resolve steric clashes with variable langevin integrator
     if minimise:
-        print("Minimising...")
-        simulation.minimizeEnergy(maxIterations=max_minimise_iterations)
-        curr_state = simulation.context.getState(
-            getPositions=True).getPositions(asNumpy=True)
+        try:
+            print("Minimising...")
+            simulation.minimizeEnergy(maxIterations=max_minimise_iterations)
+            curr_state = simulation.context.getState(
+                getPositions=True).getPositions(asNumpy=True)
+        except OpenMMException as e:
+            if integrator != "VariableLangevinIntegrator":
+                print("Minimisation blew up. "
+                      "Trying variable langevin integrator...")
+                integrator = VariableLangevinIntegrator(temperature,
+                                                        friction_coeff,
+                                                        minimise_error)
+                simulation = Simulation(modeller.topology, system, integrator)
+                simulation.context.setPositions(modeller.positions)
+                integrator = "VariableLangevinIntegrator"
+                simulation.minimizeEnergy(
+                    maxIterations=max_minimise_iterations)
+                curr_state = simulation.context.getState(
+                    getPositions=True).getPositions(asNumpy=True)
+            else:
+                print("Could not minimise even with variable langevin "
+                      "integrator.")
+                raise e
     if test_run:
         try:
             print("Running test simulation...")
