@@ -95,6 +95,33 @@ def fasta(fasta_name, include_metadata=False):
         raise IOError("Couldn't read FASTA data in "+fasta_name)
     return out
 
+def get_alignment_info(alignmentout):
+    
+    def get_info(aln):
+        total_missing = 0
+        total_gaps = 0
+        aln = "".join(aln.split("\n")[2:])
+        prev_char = "?"
+        for char in aln:
+            if char == "-":
+                total_missing += 1
+                if prev_char != "-":
+                    total_gaps += 1
+            prev_char = char
+        return total_missing, total_gaps
+
+    with open(alignmentout) as file:
+        alignment = "".join(file.readlines())
+    aln_missing, aln_filled = alignment.split(">")[1:]
+    missing_residues, missing_gaps = get_info(aln_missing)
+    filled_residues, filled_gaps = get_info(aln_filled)
+
+    total_residues_filled = missing_residues - filled_residues
+    total_gaps_filled = missing_gaps - filled_gaps
+    return total_residues_filled, total_gaps_filled, filled_residues, filled_gaps
+
+
+
 
 def get_best_pdb(directory, exts=["pdb", "cif", "mmcif", "mmCif"]):
     """
@@ -241,7 +268,14 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
     a.make()
 
     sys.stdout = old_stdout
-    print("Finished modelling missing loops.")
-
+    
     best_pdb = get_best_pdb(wdir)
+    
+    print("Finished modelling missing loops.")
+    residues, gaps, remain_res, remain_gaps = get_alignment_info(alignmentout)
+    print("Filled "+str(residues)+" residues in "+str(gaps)+" gaps.")
+    if remain_res > 0:
+        print("(still missing: "+str(remain_res) +
+              " residues in "+str(remain_gaps)+" gaps)")
+
     shutil.copy2(best_pdb, outmodel)

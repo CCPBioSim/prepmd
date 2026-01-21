@@ -374,10 +374,15 @@ def run(pdb,
             simulation.reporters.append(StateDataReporter(thermo_out_file,
                                                           step, step=True,
                                                           potentialEnergy=True,
+                                                          kineticEnergy=True,
+                                                          elapsedTime=True,
                                                           temperature=True))
         if verbose:
             simulation.reporters.append(StateDataReporter(sys.stdout,
                                                           step, step=True,
+                                                          speed=True,
+                                                          remainingTime=True,
+                                                          totalSteps=md_steps,
                                                           potentialEnergy=True,
                                                           temperature=True))
 

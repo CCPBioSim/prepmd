@@ -1,10 +1,14 @@
 [project]
 name = "prepmd"
-version = "0.1"
-requires-python = ">= 3.13.3"
+version = "1.0"
 authors = [{name = "Rob Welch", email = "robert.welch@stfc.ac.uk"}]
 description = "Automatically prepare pdb/mmCif structures for molecular dynamics simulations"
 dependencies = [
+   "requests",
+   "openmm",
+   "pdbfixer",
+   "modeller",
+   "biopython",
 #  "requests",
 #  "openmm==8.2.0",
 #  "pdbfixer==1.11",

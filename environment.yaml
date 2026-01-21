@@ -5,10 +5,9 @@ channels:
   - salilab
   - conda-forge
 dependencies:
-  - python=3.13.3
+  - python
   - requests
-  - openmm=8.2.0
-  - pdbfixer=1.11
-  - modeller=10.7
-  - biopython=1.85
-  - pytest=8.4.2
+  - openmm
+  - pdbfixer
+  - modeller
+  - biopython
