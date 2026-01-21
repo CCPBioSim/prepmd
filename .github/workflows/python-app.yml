@@ -54,8 +54,8 @@ jobs:
 
       - name: install with pip
         shell: bash -l {0}
-        run: pip install -e . && prep-license MODELIRANJE
+        run: pip install -e .
 
       - name: Run test suite
         shell: bash -l {0}
-        run: pytest -v
+        run: prep-license MODELIRANJE & pytest -v
