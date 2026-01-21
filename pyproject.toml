@@ -7,7 +7,7 @@ dependencies = [
    "requests",
    "openmm",
    "pdbfixer",
-   "modeller",
+#   "modeller",
    "biopython",
 #  "requests",
 #  "openmm==8.2.0",
