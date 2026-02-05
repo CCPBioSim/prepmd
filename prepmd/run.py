@@ -13,7 +13,9 @@ import sys
 import json
 import os
 import pathlib
-
+import prepmd.metadynamics
+import MDAnalysis as mda
+from sys import stdout
 
 ff_lookup = {
     "amber14,tip3p": ['amber14-all.xml', 'amber14/tip3p.xml'],
@@ -69,7 +71,7 @@ def check_platforms():
 
 def test_sim(pdb):
     run(pdb, minimised_structure_out=pdb, md_steps=None,
-        integrator="LangevinMiddleIntegrator",
+        integrator_str="LangevinMiddleIntegrator",
         pressure=None, test_sim_steps=250)
 
 
@@ -81,24 +83,25 @@ def run(pdb,
         test_sim_steps=500,
         md_steps=None,
         md_timestep=0.002*picoseconds,
-        forcefield="charmm36",  # or amber 14, amber19, amoeba
-        integrator="LangevinMiddleIntegrator",  # or LangevinMiddleIntegrator
+        forcefield_str="charmm36",  # or amber 14, amber19, amoeba
+        integrator_str="LangevinMiddleIntegrator",  # or LangevinMiddleIntegrator
         friction_coeff=1/picosecond,
         temperature=300*kelvin,
         minimise=True,
         test_run=True,
         fix_backbone=False,
-        constraints="Default",  # Default, None, HBonds
+        constraints_str="Default",  # Default, None, HBonds
         solvent="implicit",
         strip_solvent=False,
         ionic_strength=0.1*molar,
-        pressure=1*bar,
+        pressure=None,# formerly 1*bar,
         step=1000,
         thermo_out_file="thermo.txt",
-        non_bonded_method="Default",
+        non_bonded_method_str="Default",
         checkpoint_output="checkpoint.dat",
         verbose=True,
-        write_params="params.json"
+        write_params="params.json",
+        metadynamics_morph = None # filename of structure to morph to
         ):
     """
     Run an MD simulation from a pdb/mmcif structure created with prepmd.
@@ -117,9 +120,9 @@ def run(pdb,
         md_steps - number of steps for production md, an int
         md_timestep - md simulation timestep. Multiply by an openmm time unit.
         A float.
-        forcefield - which MD forcefield to use. Valid forcefield: charmm36,
+        forcefield_str - which MD forcefield to use. Valid forcefield: charmm36,
         amber14, amber19 (if using a recent openmm version), amoeba. A str
-        integrator - which integrator to use. Valid choices are
+        integrator_str - which integrator to use. Valid choices are
         LangevinMiddleIntegrator, VariableLangevinIntegrator. Starting with
         the middle integrator is probably best, as the variable langevin
         integrator will be used automatically if the test simulation crashes.
@@ -134,7 +137,7 @@ def run(pdb,
         test_run - whether to run a short test MD test run. A bool.
         fix_backbone - whether to fix the backbone in place, (for example, if
         you're resolving the positions of side chains). A bool
-        constraints - whether to constrain Hbonds or not. Possible values:
+        constraints_str - whether to constrain Hbonds or not. Possible values:
         None, HBonds. By default, HBonds will be constrained if the backbone
         is not fixed. A string.
         solvent - solvent to use. Possible values: None (no solvent), tip3p, 
@@ -151,7 +154,7 @@ def run(pdb,
         step - how often to write out traj/thermo information. An int.
         thermo_out_file - name of a file to write thermo information to. A
         string.
-        non_bonded_method - method for calculating long-range interactions. Can
+        non_bonded_method_str - method for calculating long-range interactions. Can
         be one of: PME, CutoffPeriodic, CutoffNonPeriodic. A string. If this is
         not set, it will be picked automatically.
         checkpoint_output: name of checkpoint file to write to. A str.
@@ -184,12 +187,12 @@ def run(pdb,
     if md_steps and not traj_out:
         raise ValueError("No output trajectory file specified!")
 
-    if (constraints == "HBonds" or constraints == HBonds) and fix_backbone:
+    if (constraints_str == "HBonds" or constraints_str == HBonds) and fix_backbone:
         raise ValueError("Can't fix the backbone with HBonds constraints! "
                          "Please disable constraints or unfix the backbone!")
 
-    if forcefield == "amoeba" and not solvent:
-        if non_bonded_method == "Default":
+    if forcefield_str == "amoeba" and not solvent:
+        if non_bonded_method_str == "Default":
             non_bonded_method = NoCutoff
             print("WARNING: AMOEBA does not support non-bonded cutoffs without"
                   " defining a periodic simulation box. For optimal "
@@ -202,6 +205,15 @@ def run(pdb,
 
     if not solvent:
         print("WARNING: No solvent. Minimised structures may be wrong!!!")
+        
+    if fix_backbone and traj_out:
+        print("Warning: you are writing a trajectory but have constrained "
+              "the backbone. Your system won't move!")
+    
+    if minimise and not minimised_structure_out:
+        minimised_structure_out = "min_"+os.path.basename(pdb)
+        print("No minimised structure output file specified. Writing "
+              "minimised structure to "+"min_"+pdb)
 
     # read in mmcif or pdb
     if ".cif" in pdb or ".mmcif" in pdb:
@@ -213,7 +225,7 @@ def run(pdb,
 
     modeller = Modeller(structure.topology, structure.positions)
 
-    forcefield = make_forcefield(forcefield, solvent)
+    forcefield = make_forcefield(forcefield_str, solvent)
 
     if solvent and solvent != "implicit":
         print("Solvating system...")
@@ -222,30 +234,30 @@ def run(pdb,
                             padding=1.0*nanometers)
 
     # can't set hbond constraints if also restraining whole backbone
-    if constraints not in [None, "Default", HBonds, "HBonds"]:
+    if constraints_str not in [None, "Default", HBonds, "HBonds"]:
         raise ValueError(
             "Constraints must be one of: Default, None, HBonds")
-    if constraints == "Default":
+    if constraints_str == "Default":
         if fix_backbone:
             constraints = None
             print("As the backbone is fixed, no constraints will be applied.")
         else:
             constraints = HBonds
             print("No constraints specified. Constraining HBonds.")
-    if constraints == "HBonds":
+    if constraints_str == "HBonds":
         constraints = HBonds
 
     # setup non bonded method - if none is chosen, select based on box
-    if non_bonded_method == "Default":
+    if non_bonded_method_str == "Default":
         if solvent == None or solvent == "implicit":
             non_bonded_method = CutoffNonPeriodic
         else:
             non_bonded_method = PME
-    elif non_bonded_method == "PME":
+    elif non_bonded_method_str == "PME":
         non_bonded_method = PME
-    elif non_bonded_method == "CutoffPeriodic":
+    elif non_bonded_method_str == "CutoffPeriodic":
         non_bonded_method = CutoffPeriodic
-    elif non_bonded_method == "CutoffNonPeriodic":
+    elif non_bonded_method_str == "CutoffNonPeriodic":
         non_bonded_method = CutoffNonPeriodic
     elif non_bonded_method == NoCutoff:
         pass
@@ -269,19 +281,30 @@ def run(pdb,
             if atom.name == 'CA':
                 system.setParticleMass(atom.index, 0*amu)
 
-    if fix_backbone and traj_out:
-        print("Warning: you are writing a trajectory but have constrained "
-              "the backbone. Your system won't move!")
-
     if pressure:
         # TODO: this seems to be broken on my current OMM version
         system.addForce(MonteCarloBarostat(pressure, temperature))
+        
+    if metadynamics_morph:
+        final = PDBFile(metadynamics_morph)
+        ref_positions = final.getPositions(asNumpy=False)
+        ref_positions_np = final.getPositions(asNumpy=True)
+        r = RMSDForce(ref_positions)
+        rforce = CustomCVForce('1*r')
+        rforce.addCollectiveVariable('r', r)
+        rmsd = BiasVariable(force=rforce, minValue=0 * angstrom,
+                            maxValue=500 * angstrom, biasWidth=1 * angstrom,
+                            periodic=False)
+        meta = Metadynamics(system=system, variables=[rmsd],
+                            temperature=300, biasFactor=2500.0,
+                            height=10 * kilocalories_per_mole,
+                            frequency=5, saveFrequency=50, biasDir='./')
 
     # set up integrator
-    if integrator == "VariableLangevinIntegrator":
+    if integrator_str == "VariableLangevinIntegrator":
         integrator = VariableLangevinIntegrator(temperature,
                                                 friction_coeff, minimise_error)
-    elif integrator == "LangevinMiddleIntegrator":
+    elif integrator_str == "LangevinMiddleIntegrator":
         integrator = LangevinMiddleIntegrator(temperature,
                                               friction_coeff, md_timestep)
     else:
@@ -289,13 +312,12 @@ def run(pdb,
                          "VariableLangevinIntegrator,"
                          " LangevinMiddleIntegrator")
     
-    # TODO: create metadynamics object here
-    
     simulation = Simulation(modeller.topology, system, integrator)
     simulation.context.setPositions(modeller.positions)
 
     # run simulation
     # try and resolve steric clashes with variable langevin integrator
+    # todo: this section could be tidier i think
     if minimise:
         try:
             print("Minimising...")
@@ -303,7 +325,7 @@ def run(pdb,
             curr_state = simulation.context.getState(
                 getPositions=True).getPositions(asNumpy=True)
         except OpenMMException as e:
-            if integrator != "VariableLangevinIntegrator":
+            if integrator_str != "VariableLangevinIntegrator":
                 print("Minimisation blew up. "
                       "Trying variable langevin integrator...")
                 integrator = VariableLangevinIntegrator(temperature,
@@ -311,7 +333,7 @@ def run(pdb,
                                                         minimise_error)
                 simulation = Simulation(modeller.topology, system, integrator)
                 simulation.context.setPositions(modeller.positions)
-                integrator = "VariableLangevinIntegrator"
+                integrator_str = "VariableLangevinIntegrator"
                 simulation.minimizeEnergy(
                     maxIterations=max_minimise_iterations)
                 curr_state = simulation.context.getState(
@@ -326,7 +348,7 @@ def run(pdb,
             simulation.step(test_sim_steps)
             print("Test simulation ran successfully.")
         except OpenMMException as e:
-            if integrator != "VariableLangevinIntegrator":
+            if integrator_str != "VariableLangevinIntegrator":
                 print("Simulation blew up, running with variable langevin "
                       "integrator...")
                 integrator = VariableLangevinIntegrator(temperature,
@@ -362,10 +384,8 @@ def run(pdb,
         if minimised_structure_out:
             raise ValueError("Minimised structure output was requested, but"
                              " minimisation and test run were both skipped.")
-
-    if md_steps and traj_out:
-        # todo: if metadynamics, add rmsd reporter here
         
+    if md_steps and traj_out and not metadynamics_morph:
         if ".dcd" in traj_out.lower():
             simulation.reporters.append(DCDReporter(traj_out, step))
         elif ".xtc" in traj_out.lower():
@@ -386,8 +406,7 @@ def run(pdb,
                                                           potentialEnergy=True,
                                                           temperature=True))
 
-    # TODO: if metadynamics, do meta.step here
-
+    if md_steps and traj_out and not metadynamics_morph:     
         print("Running production MD...")
         simulation.step(md_steps)
         simulation.saveCheckpoint(checkpoint_output)
@@ -396,6 +415,62 @@ def run(pdb,
         if thermo_out_file:
             print("Wrote thermo info to "+thermo_out_file)
         print("Wrote checkpoint to "+checkpoint_output)
+        
+    # metadynamics run
+    
+    if metadynamics_morph and not traj_out:
+        print("Metadynamics run requested but no output trajectory specified. "
+              "Writing to metadynamics.xtc.")
+        traj_out = "metadynamics.xtc"
+    if metadynamics_morph and not md_steps:
+        print("Metadynamics run requested but no steps specified. Will run a "
+              "maximum of 5000000 steps.")
+        md_steps = 5000000
+    
+    write_morph = False
+    redo_run = False
+    if metadynamics_morph:
+        try:
+            # Set up the integrator and simulation reporters
+            simulation.reporters.append(XTCReporter(traj_out, 500))
+            simulation.reporters.append(StateDataReporter(stdout, 500, step=True,
+                    potentialEnergy=True, temperature=True, progress=True, remainingTime=True, totalSteps=5000000, separator='\t'))
+            simulation.reporters.append(prepmd.metadynamics.RMSDReporter("rmsd.txt", 500, ref_positions_np))
+            meta.step(simulation, md_steps)
+            print("WARNING: Couldn't reach target structure.")
+        except prepmd.metadynamics.StopSimulation:
+            print("Metadynamics run finished. Writing morph data...")
+            write_morph = True
+            pass
+        except prepmd.metadynamics.RMSDIncrease:
+            print("RMSD is increasing, restarting...")
+            redo_run = True
+            pass
+
+        if redo_run:
+            run(pdb, minimised_structure_out, traj_out,
+                max_minimise_iterations, minimise_error,
+                test_sim_steps, md_steps, md_timestep, forcefield_str,
+                integrator_str, friction_coeff, temperature, minimise,
+                test_run, fix_backbone, constraints_str, solvent,
+                strip_solvent, ionic_strength, pressure, step,
+                thermo_out_file, non_bonded_method_str, checkpoint_output,
+                verbose, write_params, metadynamics_morph)
+    
+        if write_morph:
+            # write out pdbs and cifs as well
+            final_traj = mda.Universe(pdb, traj_out)
+            frames = prepmd.metadynamics.get_representative_rmsd_frames(simulation.reporters[2].rmsd_log, 10)
+            filtered = final_traj.trajectory[frames]
+            with mda.Writer("morph.xtc", final_traj.atoms.n_atoms) as w:
+                for frame in filtered:
+                    w.write(final_traj)
+            for frame in frames:
+                with mda.Writer("snapshot-"+str(frame)+".pdb") as w:
+                    final_traj.trajectory[frame]
+                    w.write(final_traj)
+            print("Done.")
+        
 
 
 def entry_point():
@@ -451,6 +526,8 @@ def entry_point():
         "-q", "--quiet", help="Don't print info to the stdout", action="store_true")
     parser.add_argument("-parm", "--write_params",
                         help="Write simulation params to a (json) file", default="params.json")
+    parser.add_argument("-m", "--metamorph",
+                        help="Instead of running full MD, create a morph trajectory", default=None)
 
     args = parser.parse_args()
     minimise = not args.no_minimise
@@ -464,24 +541,25 @@ def entry_point():
         test_sim_steps=args.test_steps,
         md_steps=args.md_steps,
         md_timestep=args.timestep*picoseconds,
-        forcefield=args.forcefield,
-        integrator=args.integrator,
+        forcefield_str=args.forcefield,
+        integrator_str=args.integrator,
         friction_coeff=args.friction/picosecond,
         temperature=args.temperature*kelvin,
         minimise=minimise,
         test_run=testrun,
         fix_backbone=args.fix_backbone,
-        constraints=args.constraints,
+        constraints_str=args.constraints,
         solvent=args.solvent,
         strip_solvent=args.strip_solvent,
         ionic_strength=args.ionic_strength*molar,
         pressure=args.pressure*bar,
         step=args.step,
         thermo_out_file=args.thermo,
-        non_bonded_method=args.nonbonded,
+        non_bonded_method_str=args.nonbonded,
         checkpoint_output=args.checkpoint,
         verbose=verbose,
-        write_params=args.write_params
+        write_params=args.write_params,
+        metadynamics_morph=args.metamorph
         )
 
 

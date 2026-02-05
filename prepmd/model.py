@@ -100,25 +100,35 @@ def get_alignment_info(alignmentout):
     def get_info(aln):
         total_missing = 0
         total_gaps = 0
+        lengths = []
         aln = "".join(aln.split("\n")[2:])
         prev_char = "?"
+        curr_length = 0
         for char in aln:
             if char == "-":
                 total_missing += 1
                 if prev_char != "-":
                     total_gaps += 1
+                    lengths.append(curr_length)
+                    curr_length = 0
+                else:
+                    curr_length += 1
             prev_char = char
-        return total_missing, total_gaps
+        return total_missing, total_gaps, lengths
 
     with open(alignmentout) as file:
         alignment = "".join(file.readlines())
     aln_missing, aln_filled = alignment.split(">")[1:]
-    missing_residues, missing_gaps = get_info(aln_missing)
-    filled_residues, filled_gaps = get_info(aln_filled)
+    missing_residues, missing_gaps, missing_lengths = get_info(aln_missing)
+    filled_residues, filled_gaps, filled_lengths = get_info(aln_filled)
+    try:
+        max_gap = max(missing_lengths)
+    except ValueError:
+        max_gap = 0 # no gaps
 
     total_residues_filled = missing_residues - filled_residues
     total_gaps_filled = missing_gaps - filled_gaps
-    return total_residues_filled, total_gaps_filled, filled_residues, filled_gaps
+    return total_residues_filled, total_gaps_filled, filled_residues, filled_gaps, max_gap
 
 
 
@@ -272,10 +282,12 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
     best_pdb = get_best_pdb(wdir)
     
     print("Finished modelling missing loops.")
-    residues, gaps, remain_res, remain_gaps = get_alignment_info(alignmentout)
+    residues, gaps, remain_res, remain_gaps, max_gap = get_alignment_info(alignmentout)
     print("Filled "+str(residues)+" residues in "+str(gaps)+" gaps.")
     if remain_res > 0:
         print("(still missing: "+str(remain_res) +
               " residues in "+str(remain_gaps)+" gaps)")
+    if max_gap > 20:
+        print("Warning: big missing loop ("+str(max_gap)+" residues)")
 
     shutil.copy2(best_pdb, outmodel)

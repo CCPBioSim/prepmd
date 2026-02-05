@@ -5,5 +5,7 @@ from . import get_residues
 from . import util
 from . import prep
 from . import model
+from . import metadynamics
+from . import align_together
 from . import add_modeller_license
-__version__ = "0.3"
+__version__ = "1.0"

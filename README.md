@@ -7,10 +7,11 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * [X] Automatically download structures, sequences and metadata from the PDB and UNIPROT
 * [X] Automatically fill missing loops with modeller
 * [X] Automatically add missing atoms and fix non-standard residues with pdbfixer
-* [X] Automatically propagate metadata through to finalised structure files
+* [ ] Automatically propagate metadata through to finalised structure files
 * [X] Automatically resolve steric clashes and minimise structures
+* [X] Automatically trim together structures to be the same length
 * [X] Run simple MD simulations for testing, validation and minimisation
-* [ ] Create 'morph' trajectories with metadynamics
+* [X] Create 'morph' trajectories with metadynamics
 * [ ] AIIDA integration
 
 ## Installation
@@ -35,9 +36,11 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * If you already have a minimised structure, you can skip minimisation: `runmd structure.cif --traj_out traj.xtc --md_steps 5000 --step 100 -nomin -notest`
 * Solvate the simulation box: `runmd structure.cif -o structure_minimised.cif --traj_out traj.xtc --md_steps 500 --step 10 -solv tip4pew`. tip3p, tip4pew and spce are supported. You can also add pressure coupling with `--pressure 1.0` (for 1 bar)
 * Run with different force fields: `runmd structure.cif -o structure_minimised.cif --traj_out traj.xtc --md_steps 500 --step 50 -ff amber14` runs with amber14. AMOEBA is also available, and amber19 is available if you have a recent version of OpenMM.
-* Finally, you may wish to fix the backbone in place and just equilibrate the side chains: `runmd structure.cif -o structure_minimised.cif --fix_backbone -solv tip4pew --notest`
+* Fix the backbone in place and just equilibrate the side chains: `runmd structure.cif -o structure_minimised.cif --fix_backbone -solv tip4pew --notest`
+* Use metadynamics to create a (non-physical!) guided md morph trajectory between two structures: `runmd pre.cif -m post.cif -o minimised_out.pdb` 
+* Note: if you have two files for the same structure which aren't aligned (e.g. they have slightly different starting/ending residues), you can trim the ends to align them: `aligntogether pre.cif post.cif pre_cropped.cif post_cropped.cif`
 * Use `runmd --help` for a full list of parameters. 
 
 ## License
 
-None, yet
+AGPLv3
