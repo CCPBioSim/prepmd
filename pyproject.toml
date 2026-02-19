@@ -9,7 +9,8 @@ dependencies = [
    "pdbfixer",
 #   "modeller",
    "biopython",
-   "mdanalysis",
+   "pdb2pqr",
+   "mrcfile"
 #  "requests",
 #  "openmm==8.2.0",
 #  "pdbfixer==1.11",
@@ -24,4 +25,3 @@ license = "AGPL-3.0-or-later"
 prepmd = "prepmd.prep:entry_point"
 runmd = "prepmd.run:entry_point"
 prep-license = "prepmd.add_modeller_license:entry_point"
-aligntogether = "prepmd.align_together:entry_point"

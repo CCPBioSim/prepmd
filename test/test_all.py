@@ -34,9 +34,17 @@ class TestPrep:
 
     def test_9A9G(self, tmp_path):
         run_sim("9A9G", tmp_path, fmt="cif")
+        
+    def test_bestpdb(self, tmp_path):
+        path = str(tmp_path)
+        code = "6XOV"
+        prep(code,
+             str(path)+os.path.sep+code+"."+"pdb",
+             str(path)+os.path.sep+"testout"+os.path.sep+code+"_test",
+             download_format="pdb",
+             num_models=2, em_map="22281", em_contour=0.01)
 
 # removed: 6TY4, 6XOV, 9I3U, 8RTO (too slow!)
-
 
 file_path = os.path.realpath(__file__)
 sep = os.path.sep
@@ -88,7 +96,7 @@ class TestRun:
         run(test_file,
             traj_out=str(tmp_path)+"101M_proc.xtc", md_steps=5, step=1,
             solvent="tip4pew", pressure=1.0*unit.bar, forcefield_str="amber14",
-            fix_backbone=True, minimise=False, test_run=False,
+            fix_backbone=True, minimise=True, test_run=False,
             md_timestep=0.001*unit.picoseconds,
             write_params=str(tmp_path)+sep+"params.json",
             thermo_out_file=str(tmp_path)+sep+"thermo.txt",
@@ -98,7 +106,8 @@ class TestRun:
         testpath = os.path.dirname(file_path)+sep+"test_data"+sep
         run(testpath+"6xou_cropped.pdb",
             metadynamics_morph = testpath+"6xov_cropped.pdb",
-            minimised_structure_out = str(tmp_path)+"_min.pdb")
+            minimised_structure_out = str(tmp_path)+"_min.pdb",
+            meta_rmsd_threshold_nm = 0.27)
 
 
 test_aln1 = os.path.dirname(file_path)+sep+"test_data"+sep+"6xov_prep.pdb"

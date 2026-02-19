@@ -12,4 +12,4 @@ dependencies:
   - modeller
   - biopython
   - pytest
-  - mdanalysis
+  - mrcfile

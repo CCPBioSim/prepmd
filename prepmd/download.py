@@ -9,7 +9,28 @@ from os.path import sep
 import requests
 
 
-def get_structure(pdb_id, directory, file_format="mmCif"):
+def get_em_map(emdb_id, directory):
+    """
+    Download a structure from the EMDB.
+    Args:
+        emdb_id: id of the em map to download, a string
+        directory: directory to download the file into, a string
+    returns:
+        path to the downloaded file.
+    """
+    emdb_id = str(emdb_id).replace("EMD-", "").replace("emd-", "")
+    url = "https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-"+str(emdb_id)+"/map/emd_"+str(emdb_id)+".map.gz"
+    destination = directory+sep+str(emdb_id)+".map.gz"
+    try:
+        urllib.request.urlretrieve(url, destination)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            msg = "EMDB entry with ID "+emdb_id+" not found."
+            raise IOError(msg)
+    return directory+sep+str(emdb_id)+".map.gz"
+
+
+def get_structure(pdb_id, directory, file_format="mmCif", redo=False):
     """
     Download a structure from the PDB.
     Args:
@@ -25,10 +46,17 @@ def get_structure(pdb_id, directory, file_format="mmCif"):
     if file_format == "pdb":
         format_str = "pdb"
     try:
-        url = "https://files.rcsb.org/download/"+pdb_id+"."+format_str
+        if redo:
+            url = "https://pdb-redo.eu/db/"+pdb_id+"/"+pdb_id+"_final"+"."+format_str
+            print(url)
+        else:
+            url = "https://files.rcsb.org/download/"+pdb_id+"."+format_str
         destination = directory+sep+pdb_id+"."+format_str
         urllib.request.urlretrieve(url, destination)
     except urllib.error.HTTPError as e:
+        if e.code == 404 and redo:
+            msg = "PDB with ID "+pdb_id+" not found in PDB-REDO."
+            raise IOError(msg)
         r = requests.get(url.replace(".pdb", ".cif"))
         if r.status_code == 200:
             msg = "No PDB for "+pdb_id + \

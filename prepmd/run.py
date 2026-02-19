@@ -101,7 +101,8 @@ def run(pdb,
         checkpoint_output="checkpoint.dat",
         verbose=True,
         write_params="params.json",
-        metadynamics_morph = None # filename of structure to morph to
+        metadynamics_morph = None, # filename of structure to morph to
+        meta_rmsd_threshold_nm = 0.17,
         ):
     """
     Run an MD simulation from a pdb/mmcif structure created with prepmd.
@@ -269,7 +270,8 @@ def run(pdb,
                          "simulation box. Either change the nonbondedMethod"
                          "to 'NoCutoff' or add a solvent, which will"
                          "initialise a box automatically.")
-
+    
+    #modeller.addHydrogens()
     system = forcefield.createSystem(modeller.topology,
                                      nonbondedMethod=non_bonded_method,
                                      nonbondedCutoff=1*nanometer,
@@ -282,7 +284,7 @@ def run(pdb,
                 system.setParticleMass(atom.index, 0*amu)
 
     if pressure:
-        # TODO: this seems to be broken on my current OMM version
+        print("Adding pressure coupling: "+str(pressure))
         system.addForce(MonteCarloBarostat(pressure, temperature))
         
     if metadynamics_morph:
@@ -434,8 +436,9 @@ def run(pdb,
             # Set up the integrator and simulation reporters
             simulation.reporters.append(XTCReporter(traj_out, 500))
             simulation.reporters.append(StateDataReporter(stdout, 500, step=True,
-                    potentialEnergy=True, temperature=True, progress=True, remainingTime=True, totalSteps=5000000, separator='\t'))
-            simulation.reporters.append(prepmd.metadynamics.RMSDReporter("rmsd.txt", 500, ref_positions_np))
+                                                          potentialEnergy=True, temperature=True, progress=True, remainingTime=True, totalSteps=5000000, separator='\t'))
+            simulation.reporters.append(prepmd.metadynamics.RMSDReporter(
+                "rmsd.txt", 500, ref_positions_np, threshold_nm=meta_rmsd_threshold_nm))
             meta.step(simulation, md_steps)
             print("WARNING: Couldn't reach target structure.")
         except prepmd.metadynamics.StopSimulation:

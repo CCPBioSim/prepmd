@@ -13,6 +13,7 @@ import string
 import shutil
 import copy
 import json
+from pathlib import Path
 
 from prepmd import download
 from prepmd import run
@@ -39,8 +40,8 @@ parser.add_argument("-fmt", "--dlformat",
                     help="Structure format to download (only used when no structure file is "
                     "provided)",
                     default=None)
-parser.add_argument(
-    "-q", "--quiet", help="Do not print debug info", action="store_true")
+parser.add_argument("-q", "--quiet",
+                    help="Do not print debug info", action="store_true")
 parser.add_argument("-e", "--fixstart",
                     help="Fix pdb at the end of the process, not the start",
                     action="store_true")
@@ -49,6 +50,22 @@ parser.add_argument("-dl", "--download",
                     " an external fasta file", action="store_true")
 parser.add_argument("-m", "--leavemissing",
                     help="Don't restore missing atoms", action="store_true")
+parser.add_argument("-p", "--pqrfmt",
+                    help="Force field to use for creating the PQR file. Can be"
+                    "AMBER or LAMMPS. Will only output a PQR file if this is "
+                    "set.")
+parser.add_argument("-r", "--redo", help="Get PDB from PDB-REDO",
+                    action="store_true")
+parser.add_argument("-n", "--num",
+                    help="Number of models to create with MODELLER. The best "
+                    "model will be selected based on the MODELLER objective "
+                    "function.", type=int)
+parser.add_argument("-em", "--em_map",
+                    help="If multiple models are being generated, the best "
+                    "model will be selected based on agreement with this "
+                    "EM density map instead of the objective function.")
+parser.add_argument("-c", "--contour",
+                    help="Contour level for the EM map.", type=float)
 
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
@@ -66,7 +83,8 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
          alignmentout="alignment_out.fasta", download_format="mmCif",
          quiet=False, fix_after=True, download_sequence=False,
-         fix_missing_atoms=True, write_metadata="prepmeta.json"):
+         fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff=None,
+         redo=False, num_models=1, em_map=None, em_contour=None):
     """
     Prepare a PDB/MMCIF structure file for simulation.
     Args:
@@ -91,6 +109,15 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         UNIPROT sequence is normally very different from the pdb sequence, so
         the alignment might fail. a boolean
         fix_missing_atoms: whether to add missing atoms with pdbfixer. A bool
+        pqrff: if this is set, will output a PQR file created with this force
+        field. A string, can be AMBER or CHARMM
+        redo: if True, will download PDB from PDB-REDO instead of the regular
+        PDB.
+        num_models: number of models to generate, an int. If >1, the best model
+        will be selected based on MODELLER's internal scoring metric.
+        em_map: path to an EM density map file (a string). If this is set,
+        the best PDB will be picked based on similarity to the map.
+        em_contour: contour level for the EM map, a float.
     Returns:
         nothing, but writes out a file to outmodel.
     """
@@ -135,10 +162,21 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         pathlib.Path(workingdir).mkdir(parents=True, exist_ok=True)
 
     if inmodel:
-        shutil.copyfile(inmodel, workingdir+os.path.sep+code+"."+download_format)
+        shutil.copyfile(inmodel,
+                        workingdir+os.path.sep+code+"."
+                        ""+download_format.replace("mmCif", "cif"))
         # note: modeller requires the filename to be the same as the pdb code
         # so here we change the filename
         inmodel = code+"."+download_format.replace("mmCif", "cif")
+        
+    if em_map:
+        print(em_map)
+        if not Path.is_file(Path(str(em_map))):
+            print("Downloading EM map...")
+            em_map = download.get_em_map(em_map, workingdir)
+        else:
+            shutil.copyfile(em_map,
+                            workingdir+os.path.sep+os.path.basename(em_map))
 
     run_dir = os.getcwd()
     os.chdir(workingdir)
@@ -164,7 +202,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     if code and inmodel == None and folder == None:
         print("Downloading structure file")
         inmodel = download.get_structure(
-            code, workingdir, file_format=download_format)
+            code, workingdir, file_format=download_format, redo=redo)
         print("Downloaded to "+inmodel)
 
     # fix
@@ -198,8 +236,9 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
                 "No sequence files found in folder or specified, could not"
                 "download sequence")
 
-    model.fix_missing_residues(code, fastafile, alignmentout,
-                               inmodel, outmodel, workingdir)
+    model.fix_missing_residues(code, fastafile, alignmentout, inmodel,
+                               outmodel, workingdir, num_models=num_models,
+                               em_map=em_map, em_contour=em_contour)
     if fix_after:
         print("Fixing PDB")
         fix.fix(outmodel, outmodel, fix_missing_atoms=fix_missing_atoms)
@@ -235,7 +274,9 @@ def entry_point():
          folder=args.directory, fastafile=args.fasta, inmodel=args.structure,
          alignmentout=args.alignmentout, download_format=args.dlformat,
          quiet=args.quiet, fix_after=fix_after,
-         download_sequence=args.download, fix_missing_atoms=args.leavemissing)
+         download_sequence=args.download, fix_missing_atoms=args.leavemissing,
+         pqrff=args.pqrfmt, redo=args.redo, num_models=args.num,
+         em_map = args.em_map, em_contour=args.contour)
 
 
 if __name__ == "__main__":
