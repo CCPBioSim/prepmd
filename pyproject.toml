@@ -10,7 +10,7 @@ dependencies = [
 #   "modeller",
    "biopython",
    "pdb2pqr",
-   "mrcfile"
+   "mdanalysis",
 #  "requests",
 #  "openmm==8.2.0",
 #  "pdbfixer==1.11",

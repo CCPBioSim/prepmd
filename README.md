@@ -79,3 +79,4 @@ prepmd is developed by Rob Welch. Thanks to Harry Swift for helping set up the C
 * pdb2pqr
 * mrcfile
 * icp
+* mdanalysis
