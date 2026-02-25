@@ -35,7 +35,7 @@ ff_lookup = {
     "amoeba,None": ['amoeba2018.xml'],
     "amber19,None": ['amber19-all.xml'],
     "amber19,implicit": ['amber19-all.xml', 'implicit/gbn2.xml'],
-    "amber14,implicit": ['amber14-all.xml', 'implicit/gbn2.xml'],
+    "amber14,implicit": ['amber14-all.xml', 'implicit/gbn2.xml',],
     "charmm36,implicit": ['charmm36.xml', 'implicit/gbn2.xml'],
     "amoeba,implicit": ['amoeba2018.xml', 'amoeba2009_gk.xml'],  
 }

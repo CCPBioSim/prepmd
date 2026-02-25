@@ -5,7 +5,7 @@
 A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations.
 
 ## Features
-* [X] Automatically download structures, sequences and metadata from the PDB and UNIPROT
+* [X] Automatically download structures, sequences and metadata from the PDB, PDB-REDO, EMDB and UNIPROT
 * [X] Automatically fill missing loops with modeller
 * [X] Automatically add missing atoms and fix non-standard residues with pdbfixer
 * [X] Automatically resolve steric clashes and minimise structures

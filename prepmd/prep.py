@@ -19,6 +19,7 @@ from prepmd import download
 from prepmd import run
 from prepmd import fix
 from prepmd import model
+from prepmd import pdb2pqr as pqr
 
 parser = argparse.ArgumentParser(prog="prepmd",
                                  description="Get structures from the PDB ready for "
@@ -50,16 +51,19 @@ parser.add_argument("-dl", "--download",
                     " an external fasta file", action="store_true")
 parser.add_argument("-m", "--leavemissing",
                     help="Don't restore missing atoms", action="store_true")
-parser.add_argument("-p", "--pqrfmt",
+parser.add_argument("-p", "--pqr",
+                    help="PQR output filename. If set, will output a PQR "
+                    "as well as a pdb.")
+parser.add_argument("-ff", "--pqrfmt",
                     help="Force field to use for creating the PQR file. Can be"
                     "AMBER or LAMMPS. Will only output a PQR file if this is "
-                    "set.")
+                    "set.", default="AMBER")
 parser.add_argument("-r", "--redo", help="Get PDB from PDB-REDO",
                     action="store_true")
 parser.add_argument("-n", "--num",
                     help="Number of models to create with MODELLER. The best "
                     "model will be selected based on the MODELLER objective "
-                    "function.", type=int)
+                    "function.", type=int, default=1)
 parser.add_argument("-em", "--em_map",
                     help="If multiple models are being generated, the best "
                     "model will be selected based on agreement with this "
@@ -83,8 +87,8 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
          alignmentout="alignment_out.fasta", download_format="mmCif",
          quiet=False, fix_after=True, download_sequence=False,
-         fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff=None,
-         redo=False, num_models=1, em_map=None, em_contour=None):
+         fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff="AMBER",
+         pqr_out=None, redo=False, num_models=1, em_map=None,em_contour=None):
     """
     Prepare a PDB/MMCIF structure file for simulation.
     Args:
@@ -109,8 +113,9 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         UNIPROT sequence is normally very different from the pdb sequence, so
         the alignment might fail. a boolean
         fix_missing_atoms: whether to add missing atoms with pdbfixer. A bool
-        pqrff: if this is set, will output a PQR file created with this force
-        field. A string, can be AMBER or CHARMM
+        pqrff: A string, can be AMBER or CHARMM. Force field to use for the
+        PQR creation. Note: when I tested, CHARMM was buggy.
+        pqr_out: output PQR filename, a string.
         redo: if True, will download PDB from PDB-REDO instead of the regular
         PDB.
         num_models: number of models to generate, an int. If >1, the best model
@@ -251,16 +256,32 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     #    fix.restore_metadata_pdb(inmodel, outmodel)
     #if ".cif" in inmodel or ".mmcif" in inmodel:
     #    print("Metadata restoration not implemented for mmCif (yet)")
+    
+    if pqr_out:
+        print("Creating PQR...")
+        pqr.run_pdb2pqr(outmodel, pqr_out, ff=pqrff)        
 
     print("Simulating "+code)
-    run.test_sim(outmodel)
+    if pqr_out:
+        #run.test_sim(pqr_out)
+        run.run(pqr_out, minimised_structure_out=None, md_steps=None,
+            integrator_str="LangevinMiddleIntegrator",
+            pressure=None, test_sim_steps=250)
+    else:
+        run.test_sim(outmodel)
     print("Done.")
     
     with open(write_metadata, "w") as file:
         file.write(locals_json)
 
-    if not os.path.isabs(outmodel):
+    if not os.path.isabs(outmodel) and not pqr_out:
         shutil.copyfile(outmodel, run_dir+os.path.sep+outmodel)
+        
+    if not os.path.isabs(outmodel) and pqr_out:
+        shutil.copyfile(pqr_out, run_dir+os.path.sep+pqr_out)
+        print("Wrote final PQR file to "+pqr_out+".")
+    
+    if not os.path.isabs(outmodel):
         shutil.copyfile(write_metadata, run_dir+os.path.sep+write_metadata)
 
 
@@ -275,8 +296,9 @@ def entry_point():
          alignmentout=args.alignmentout, download_format=args.dlformat,
          quiet=args.quiet, fix_after=fix_after,
          download_sequence=args.download, fix_missing_atoms=args.leavemissing,
-         pqrff=args.pqrfmt, redo=args.redo, num_models=args.num,
-         em_map = args.em_map, em_contour=args.contour)
+         pqrff=args.pqrfmt, pqr_out=args.pqr,
+         redo=args.redo, num_models=args.num, em_map = args.em_map,
+         em_contour=args.contour)
 
 
 if __name__ == "__main__":

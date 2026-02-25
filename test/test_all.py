@@ -43,6 +43,15 @@ class TestPrep:
              str(path)+os.path.sep+"testout"+os.path.sep+code+"_test",
              download_format="pdb",
              num_models=2, em_map="22281", em_contour=0.01)
+        
+    def test_pqr(self, tmp_path):
+        path = str(tmp_path)
+        code = "1UBQ"
+        prep(code,
+             str(path)+os.path.sep+code+"."+"pdb",
+             str(path)+os.path.sep+"testout"+os.path.sep+code+"_test",
+             download_format="pdb",
+             pqr_out=str(path)+os.path.sep+code+"."+"pqr",)
 
 # removed: 6TY4, 6XOV, 9I3U, 8RTO (too slow!)
 

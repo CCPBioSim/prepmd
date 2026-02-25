@@ -6,13 +6,18 @@ Created on Mon Feb  9 14:04:25 2026
 @author: rob
 """
 
-#import pdb2pqr
+import pdb2pqr
 
-# steps:
-    # run as normal but not including test simulation and fixing
-    # apply pdb2pqr before fixing
-    # then fix, and especially add missing atoms AND remove hetatms
-    # then run as normal
+def run_pdb2pqr(infile, outfile, ff="AMBER"):
+    """
+    Run PDB2PQR.
 
-#pdb2pqr.run_pdb2pqr("A")
-# example usage: UBQ.pdb 1UBQ.pqr --titration-state-method=propka --with-ph=7 --ff=CHARMM --ffout=CHARMM
+    Args:
+        infile - path to input file, a string
+        outfile - path to output PQR file, a string
+        ff - force field to use for calculations and residue naming
+    Returns:
+        nothing, but writes 'outfile'
+    """
+    pdb2pqr.run_pdb2pqr([infile, outfile, "--titration-state-method=propka",
+                        "--with-ph=7", "--ff="+ff, "--ffout="+ff, "--drop-water"])
