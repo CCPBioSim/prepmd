@@ -27,7 +27,8 @@ codes = {
     "TRP": "W",
     "XAA": "X",
     "TYR": "Y",
-    "GLX": "Z"
+    "GLX": "Z",
+    ".h.": ".h." # leave hetatms
 }
 
 

@@ -16,6 +16,7 @@ import pathlib
 import prepmd.metadynamics
 import MDAnalysis as mda
 from sys import stdout
+from prepmd import ligand
 
 ff_lookup = {
     "amber14,tip3p": ['amber14-all.xml', 'amber14/tip3p.xml'],
@@ -69,21 +70,25 @@ def check_platforms():
         print("WARNING: no GPU platform found. Simulation will be slow!!!")
 
 
-def test_sim(pdb):
-    run(pdb, minimised_structure_out=pdb, md_steps=None,
+def test_sim(pdb, no_output = False):
+    if no_output:
+        min_out = None
+    else:
+        min_out = pdb
+    run(pdb, minimised_structure_out=min_out, md_steps=None,
         integrator_str="LangevinMiddleIntegrator",
-        pressure=None, test_sim_steps=250)
+        pressure=None, test_sim_steps=250, no_output = no_output)
 
 
 def run(pdb,
         minimised_structure_out=None,
         traj_out=None,
         max_minimise_iterations=100,
-        minimise_error=0.001,
+        minimise_error = None, #default = 0.001,
         test_sim_steps=500,
         md_steps=None,
-        md_timestep=0.002*picoseconds,
-        forcefield_str="charmm36",  # or amber 14, amber19, amoeba
+        md_timestep=None, # default = 0.002*picoseconds,
+        forcefield_str=None,  # or amber 14, amber19, amoeba
         integrator_str="LangevinMiddleIntegrator",  # or LangevinMiddleIntegrator
         friction_coeff=1/picosecond,
         temperature=300*kelvin,
@@ -91,9 +96,9 @@ def run(pdb,
         test_run=True,
         fix_backbone=False,
         constraints_str="Default",  # Default, None, HBonds
-        solvent="implicit",
+        solvent=None,
         strip_solvent=False,
-        ionic_strength=0.1*molar,
+        ionic_strength=0.0*molar,
         pressure=None,# formerly 1*bar,
         step=1000,
         thermo_out_file="thermo.txt",
@@ -103,6 +108,8 @@ def run(pdb,
         write_params="params.json",
         metadynamics_morph = None, # filename of structure to morph to
         meta_rmsd_threshold_nm = 0.17,
+        no_output = False,
+        ligands = []
         ):
     """
     Run an MD simulation from a pdb/mmcif structure created with prepmd.
@@ -191,6 +198,31 @@ def run(pdb,
     if (constraints_str == "HBonds" or constraints_str == HBonds) and fix_backbone:
         raise ValueError("Can't fix the backbone with HBonds constraints! "
                          "Please disable constraints or unfix the backbone!")
+    
+    # set some defaults
+    if forcefield_str == None:
+        if not ligands:
+            forcefield_str = "charmm36"
+        else:
+            forcefield_str = "amber14"
+            
+    if solvent == None:
+        if not ligands:
+            solvent = "implicit"
+        else:
+            solvent = "tip3p"
+            
+    # default timestep for ligand simulations is smaller
+    if not md_timestep and not ligands:
+        md_timestep = 0.002*picoseconds
+    if not md_timestep and ligands:
+        md_timestep = 0.0005*picoseconds
+    if not minimise_error and not ligands:
+        minimise_error = 0.001
+    if not minimise_error and ligands:
+        minimise_error = 0.001*0.5
+    #print("Timestep: "+str(md_timestep))
+    #print("Min_err: "+str(minimise_error))
 
     if forcefield_str == "amoeba" and not solvent:
         if non_bonded_method_str == "Default":
@@ -211,71 +243,105 @@ def run(pdb,
         print("Warning: you are writing a trajectory but have constrained "
               "the backbone. Your system won't move!")
     
-    if minimise and not minimised_structure_out:
+    if minimise and not minimised_structure_out and not no_output:
         minimised_structure_out = "min_"+os.path.basename(pdb)
         print("No minimised structure output file specified. Writing "
               "minimised structure to "+"min_"+pdb)
 
-    # read in mmcif or pdb
-    if ".cif" in pdb or ".mmcif" in pdb:
-        structure = PDBxFile(pdb)
-        writer = PDBxFile
-    else:
-        structure = PDBFile(pdb)
-        writer = PDBFile
-
-    modeller = Modeller(structure.topology, structure.positions)
-
-    forcefield = make_forcefield(forcefield_str, solvent)
-
-    if solvent and solvent != "implicit":
-        print("Solvating system...")
-        modeller.addSolvent(forcefield, model=solvent,
-                            ionicStrength=ionic_strength,
-                            padding=1.0*nanometers)
-
-    # can't set hbond constraints if also restraining whole backbone
-    if constraints_str not in [None, "Default", HBonds, "HBonds"]:
-        raise ValueError(
-            "Constraints must be one of: Default, None, HBonds")
-    if constraints_str == "Default":
-        if fix_backbone:
-            constraints = None
-            print("As the backbone is fixed, no constraints will be applied.")
+    if ligands:
+        if forcefield_str != "amber14":
+            raise ValueError("Error: Ligand simulations are only supported "
+                             "with amber14")
+        if solvent != "tip3p" and solvent != "tip4pew":
+            raise ValueError("Ligand simulations are only supported with"
+                             " tip3p and tip4pew solvent")
+        if strip_solvent:
+            raise ValueError("Can't strip solvent on a ligand system!")
+        if constraints_str == "Default" or constraints_str == "HBonds":
+            ff = "ff14sb_off_impropers_0.0.4.offxml"
+            ligand_ff = "openff-2.2.0.offxml"
+        if constraints_str == "None":
+            ff = "ff14sb_off_impropers_0.0.4.offxml"
+            ligand_ff = "openff_unconstrained-2.2.0.offxml"
+        if md_timestep >= 0.001*picoseconds or minimise_error >= 0.001:
+            print("WARNING: Timestep/error tolerance are high for a ligand "
+                  "simulation. If the simulation crashes (e.g. due to "
+                  "'Particle co-ordinate is NaN'), try reducing them.")
+        if ".cif" in pdb or ".mmcif" in pdb:
+                writer = PDBxFile
         else:
-            constraints = HBonds
-            print("No constraints specified. Constraining HBonds.")
-    if constraints_str == "HBonds":
-        constraints = HBonds
-
-    # setup non bonded method - if none is chosen, select based on box
-    if non_bonded_method_str == "Default":
-        if solvent == None or solvent == "implicit":
-            non_bonded_method = CutoffNonPeriodic
-        else:
-            non_bonded_method = PME
-    elif non_bonded_method_str == "PME":
-        non_bonded_method = PME
-    elif non_bonded_method_str == "CutoffPeriodic":
-        non_bonded_method = CutoffPeriodic
-    elif non_bonded_method_str == "CutoffNonPeriodic":
-        non_bonded_method = CutoffNonPeriodic
-    elif non_bonded_method == NoCutoff:
-        pass
-    else:
-        raise ValueError("Supply a valid nonbondedMethod! Could be Default, "
-                         "PME, CutoffPeriodic or CutoffNonPeriodic")
-    if non_bonded_method == PME and not solvent:
-        raise ValueError("Cannot run a PME simulation on a system with no "
-                         "simulation box. Either change the nonbondedMethod"
-                         "to 'NoCutoff' or add a solvent, which will"
-                         "initialise a box automatically.")
+                writer = PDBFile
+        system, topology, positions = ligand.create_ligand_system(pdb,
+                                                                  ligands,
+                                                                  water_ff = solvent,
+                                                                  desired_charge_elementary = ionic_strength._value,
+                                                                  ff = ff,
+                                                                  ligand_ff = ligand_ff,
+                                                                  n_water = 5000)
     
-    #modeller.addHydrogens()
-    system = forcefield.createSystem(modeller.topology,
-                                     nonbondedMethod=non_bonded_method,
-                                     nonbondedCutoff=1*nanometer,
-                                     constraints=constraints)
+    else:
+        # read in mmcif or pdb
+        if ".cif" in pdb or ".mmcif" in pdb:
+            structure = PDBxFile(pdb)
+            writer = PDBxFile
+        else:
+            structure = PDBFile(pdb)
+            writer = PDBFile
+    
+        modeller = Modeller(structure.topology, structure.positions)
+    
+        forcefield = make_forcefield(forcefield_str, solvent)
+    
+        if solvent and solvent != "implicit":
+            print("Solvating system...")
+            modeller.addSolvent(forcefield, model=solvent,
+                                ionicStrength=ionic_strength,
+                                padding=1.0*nanometers)
+    
+        # can't set hbond constraints if also restraining whole backbone
+        if constraints_str not in [None, "Default", HBonds, "HBonds"]:
+            raise ValueError(
+                "Constraints must be one of: Default, None, HBonds")
+        if constraints_str == "Default":
+            if fix_backbone:
+                constraints = None
+                print("As the backbone is fixed, no constraints will be "
+                      "applied.")
+            else:
+                constraints = HBonds
+                print("No constraints specified. Constraining HBonds.")
+        if constraints_str == "HBonds":
+            constraints = HBonds
+    
+        # setup non bonded method - if none is chosen, select based on box
+        if non_bonded_method_str == "Default":
+            if solvent == None or solvent == "implicit":
+                non_bonded_method = CutoffNonPeriodic
+            else:
+                non_bonded_method = PME
+        elif non_bonded_method_str == "PME":
+            non_bonded_method = PME
+        elif non_bonded_method_str == "CutoffPeriodic":
+            non_bonded_method = CutoffPeriodic
+        elif non_bonded_method_str == "CutoffNonPeriodic":
+            non_bonded_method = CutoffNonPeriodic
+        elif non_bonded_method == NoCutoff:
+            pass
+        else:
+            raise ValueError("Supply a valid nonbondedMethod! Could be "
+                             "Default, PME, CutoffPeriodic or "
+                             "CutoffNonPeriodic")
+        if non_bonded_method == PME and not solvent:
+            raise ValueError("Cannot run a PME simulation on a system with no "
+                             "simulation box. Either change the "
+                             "nonbondedMethod to 'NoCutoff' or add a solvent,"
+                             " which will initialise a box automatically.")
+        
+        #modeller.addHydrogens()
+        system = forcefield.createSystem(modeller.topology,
+                                         nonbondedMethod=non_bonded_method,
+                                         nonbondedCutoff=1*nanometer,
+                                         constraints=constraints)
 
     # constrain backbone by setting CA mass to zero
     if fix_backbone:
@@ -313,17 +379,25 @@ def run(pdb,
         raise ValueError("Integrator must be one of: "
                          "VariableLangevinIntegrator,"
                          " LangevinMiddleIntegrator")
-    
-    simulation = Simulation(modeller.topology, system, integrator)
-    simulation.context.setPositions(modeller.positions)
+        
+    if ligands:
+        simulation = Simulation(topology, system, integrator)
+        simulation.context.setPositions(positions)
+    else:
+        topology = modeller.topology
+        positions = modeller.positions
+        simulation = Simulation(topology, system, integrator)
+        simulation.context.setPositions(modeller.positions)
 
     # run simulation
     # try and resolve steric clashes with variable langevin integrator
     # todo: this section could be tidier i think
+    strict_min = quantity.Quantity(value=2.5,unit=kilojoule/(nanometer*mole))
     if minimise:
         try:
             print("Minimising...")
-            simulation.minimizeEnergy(maxIterations=max_minimise_iterations)
+            simulation.minimizeEnergy(maxIterations=max_minimise_iterations,
+                                      tolerance = strict_min)
             curr_state = simulation.context.getState(
                 getPositions=True).getPositions(asNumpy=True)
         except OpenMMException as e:
@@ -333,11 +407,12 @@ def run(pdb,
                 integrator = VariableLangevinIntegrator(temperature,
                                                         friction_coeff,
                                                         minimise_error)
-                simulation = Simulation(modeller.topology, system, integrator)
-                simulation.context.setPositions(modeller.positions)
+                simulation = Simulation(topology, system, integrator)
+                simulation.context.setPositions(positions)
                 integrator_str = "VariableLangevinIntegrator"
                 simulation.minimizeEnergy(
-                    maxIterations=max_minimise_iterations)
+                    maxIterations=max_minimise_iterations,
+                    tolerance = strict_min)
                 curr_state = simulation.context.getState(
                     getPositions=True).getPositions(asNumpy=True)
             else:
@@ -356,15 +431,16 @@ def run(pdb,
                 integrator = VariableLangevinIntegrator(temperature,
                                                         friction_coeff,
                                                         minimise_error)
-                simulation = Simulation(modeller.topology, system, integrator)
-                simulation.context.setPositions(modeller.positions)
+                simulation = Simulation(topology, system, integrator)
+                simulation.context.setPositions(positions)
                 simulation.minimizeEnergy(
-                    maxIterations=max_minimise_iterations)
+                    maxIterations = max_minimise_iterations,
+                    tolerance = strict_min)
                 print("Fixed")
                 curr_state = simulation.context.getState(
                     getPositions=True).getPositions(asNumpy=True)
                 if md_steps:
-                    print("Note: production MD will run with the variable"
+                    print("Note: production MD will run with the variable "
                           "langevin integrator.")
             else:
                 print("Simulation blew up even while using variable langevin"
@@ -374,7 +450,7 @@ def run(pdb,
     with open(write_params, "w") as file:
         file.write(locals_json)
 
-    if minimise or test_run:
+    if (minimise or test_run) and not no_output :
         modeller_out = Modeller(simulation.topology, curr_state)
         if strip_solvent:
             modeller_out.deleteWater()
@@ -382,7 +458,8 @@ def run(pdb,
                          file=open(minimised_structure_out, "w"), keepIds=True)
         print("Wrote minimised structure to "+str(minimised_structure_out)+".")
     else:
-        print("Skipped minimisation and test run.")
+        if not no_output:
+            print("Skipped minimisation and test run.")
         if minimised_structure_out:
             raise ValueError("Minimised structure output was requested, but"
                              " minimisation and test run were both skipped.")
@@ -488,14 +565,14 @@ def entry_point():
         "-tr", "--traj_out", help="Production MD trajectory output file. Can be in DCD or XTC format.", default=None)
     parser.add_argument("-it", "--minimise_iterations",
                         help="Maximum minimise iterations", default=100, type=int)
-    parser.add_argument("-e", "--minimise_err", help="error tolerance for variable langevin integrator. The value is arbitrary, 0.001 is a good starting point, increasing this will make the simulation run faster at the expense of accuracy", default=0.001, type=float)
+    parser.add_argument("-e", "--minimise_err", help="error tolerance for variable langevin integrator. The value is arbitrary, 0.001 is a good starting point, increasing this will make the simulation run faster at the expense of accuracy", default=None, type=float)
     parser.add_argument("-test", "--test_steps", help="how many steps to run of the test simulation. This isn't production MD, this is just the simulation that checks that your structure doesn't have any steric clashes", default=500, type=int)
     parser.add_argument("-mdsteps", "--md_steps",
                         help="how many steps to run production MD for", default=None, type=int)
     parser.add_argument(
-        "-ts", "--timestep", help="MD timestep in picoseconds", default=0.002, type=float)
+        "-ts", "--timestep", help="MD timestep in picoseconds", default=None, type=float)
     parser.add_argument("-ff", "--forcefield",
-                        help="Force field to use (can be charmm36, amber14, amoeba, or amber19 on newer openmm versions", default="charmm36")
+                        help="Force field to use (can be charmm36, amber14, amoeba, or amber19 on newer openmm versions", default=None)
     parser.add_argument("-i", "--integrator", help="Numerical integration scheme. Can be one of: VariableLangevinIntegrator, LangevinMiddleIntegrator",
                         default="LangevinMiddleIntegrator")
     parser.add_argument(
@@ -510,7 +587,7 @@ def entry_point():
                         help="Fix the backbone", action="store_true")
     parser.add_argument("-c", "--constraints", help="Constraints to apply. Possible values: None, HBonds. Constraining HBonds can make simulations run faster, at the cost of some accuracy. You can't constrain HBonds if you're also fixing the backbone, for obvious reasons.", default="Default")
     parser.add_argument(
-        "-solv", "--solvent", help="Solvent to use. Possible values: tip3p, tip4pew, spce, implicit (GBn model, equivalent to AMBER igb=8). If no solvent is specified, implicit will be used.", default="implicit")
+        "-solv", "--solvent", help="Solvent to use. Possible values: tip3p, tip4pew, spce, implicit (GBn model, equivalent to AMBER igb=8). If no solvent is specified, implicit will be used.", default=None)
     parser.add_argument("-ns", "--strip_solvent",
                         help="Don't write solvent molecules to the minimised output file", action="store_true")
     parser.add_argument("-ion", "--ionic_strength",
@@ -531,6 +608,8 @@ def entry_point():
                         help="Write simulation params to a (json) file", default="params.json")
     parser.add_argument("-m", "--metamorph",
                         help="Instead of running full MD, create a morph trajectory", default=None)
+    parser.add_argument("-l", "--ligand", action="append",
+                        help="Add a ligand from an sdf file. Call multiple times to add multiple ligands.", default=None)
 
     args = parser.parse_args()
     minimise = not args.no_minimise
@@ -562,7 +641,8 @@ def entry_point():
         checkpoint_output=args.checkpoint,
         verbose=verbose,
         write_params=args.write_params,
-        metadynamics_morph=args.metamorph
+        metadynamics_morph=args.metamorph,
+        ligands=args.ligand
         )
 
 

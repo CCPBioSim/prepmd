@@ -20,6 +20,7 @@ from prepmd import run
 from prepmd import fix
 from prepmd import model
 from prepmd import pdb2pqr as pqr
+from prepmd import ligand
 
 parser = argparse.ArgumentParser(prog="prepmd",
                                  description="Get structures from the PDB ready for "
@@ -70,6 +71,9 @@ parser.add_argument("-em", "--em_map",
                     "EM density map instead of the objective function.")
 parser.add_argument("-c", "--contour",
                     help="Contour level for the EM map.", type=float)
+parser.add_argument("-il", "--ignore_hetatms",
+                    help="Strip hetatms/ligands from input file",
+                    action="store_true")
 
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
@@ -88,7 +92,8 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
          alignmentout="alignment_out.fasta", download_format="mmCif",
          quiet=False, fix_after=True, download_sequence=False,
          fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff="AMBER",
-         pqr_out=None, redo=False, num_models=1, em_map=None,em_contour=None):
+         pqr_out=None, redo=False, num_models=1, em_map=None,em_contour=None,
+         ignore_hetatms=False):
     """
     Prepare a PDB/MMCIF structure file for simulation.
     Args:
@@ -148,8 +153,6 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         if ".cif" in inmodel or ".pdbx" in inmodel or ".mmcif" in inmodel:
             download_format = "mmCif"
 
-        
-
     # check that input/output are specified in the same format
     # i'm not against converting the files but it shouldn't happen implicitly
     def in_string(substr, text): return text == None or substr in text.lower()
@@ -162,6 +165,10 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     else:
         raise IOError("Inputs and outputs are in different formats! Please "
                       "use only one format (ideally cif)")
+
+    if pqr_out and download_format == "mmCif":
+        raise IOError("PQR generation requires the PDB format to be used. "
+                      "Please specify an input and output PDB!")
 
     if not os.path.isdir(workingdir):
         pathlib.Path(workingdir).mkdir(parents=True, exist_ok=True)
@@ -243,7 +250,21 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
 
     model.fix_missing_residues(code, fastafile, alignmentout, inmodel,
                                outmodel, workingdir, num_models=num_models,
-                               em_map=em_map, em_contour=em_contour)
+                               em_map=em_map, em_contour=em_contour,
+                               keep_hetatms = not ignore_hetatms)
+    
+    # strip heterogens
+    no_sim_output = False
+    ligands = ligand.split_pdb_ligand(inmodel)
+    if ligands and not ignore_hetatms:
+        print("Wrote hetatms/ligands to "+", ".join(ligands))
+        no_sim_output = True # don't minimise the ligandless structure without
+        # the ligands!
+    if ligands and ignore_hetatms:
+        print("Ligands found but will be ignored.")
+    if not ligands:
+        print("No ligands found.")
+    
     if fix_after:
         print("Fixing PDB")
         fix.fix(outmodel, outmodel, fix_missing_atoms=fix_missing_atoms)
@@ -268,8 +289,12 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
             integrator_str="LangevinMiddleIntegrator",
             pressure=None, test_sim_steps=250)
     else:
-        run.test_sim(outmodel)
+        run.test_sim(outmodel, no_output = no_sim_output)
     print("Done.")
+    if ligand and no_sim_output:
+        print("Note: "+outmodel+" has not been minimsed. This is because there"
+              " are possible ligands in the input file, and you may want to "
+              "add these back to the structure before running a simulation.")
     
     with open(write_metadata, "w") as file:
         file.write(locals_json)
@@ -283,6 +308,10 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     
     if not os.path.isabs(outmodel):
         shutil.copyfile(write_metadata, run_dir+os.path.sep+write_metadata)
+    
+    if not os.path.isabs(outmodel) and ligands and not ignore_hetatms:
+        for lig in ligands:
+            shutil.copyfile(lig, run_dir+os.path.sep+lig)
 
 
 def entry_point():
@@ -297,8 +326,8 @@ def entry_point():
          quiet=args.quiet, fix_after=fix_after,
          download_sequence=args.download, fix_missing_atoms=args.leavemissing,
          pqrff=args.pqrfmt, pqr_out=args.pqr,
-         redo=args.redo, num_models=args.num, em_map = args.em_map,
-         em_contour=args.contour)
+         redo=args.redo, num_models=args.num, em_map=args.em_map,
+         em_contour=args.contour, ignore_hetatms=args.ignore_hetatms)
 
 
 if __name__ == "__main__":

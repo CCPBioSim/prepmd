@@ -231,7 +231,8 @@ def get_best_pdb(directory, exts=["pdb", "cif", "mmcif", "mmCif"],
 
 # note: the pdb file isn't a parameter, it must be called code.pdb
 def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
-                         wdir, num_models=1, em_map=None, em_contour=None):
+                         wdir, num_models=1, em_map=None, em_contour=None,
+                         keep_hetatms = False):
     """
     For a given structure, fill in missing loops using modeller.
     Args:
@@ -293,13 +294,16 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
 
     if not fastafile:
         print("Getting missing residues from input file...")
-        pdb_res = get_residues.get_residues_pdb(inmodel, code)
-        pdb_fullseq = get_residues.get_fullseq_pdb(inmodel, code)
+        pdb_res = get_residues.get_residues_pdb(inmodel, code,
+                                                get_hetatms = keep_hetatms)
+        pdb_fullseq = get_residues.get_fullseq_pdb(inmodel, code,
+                                                   get_hetatms = keep_hetatms)
         with open(code+".seq", "w") as file:
             file.write("".join(pdb_res))
         with open(code+"_fill.seq", "w") as file:
             file.write(pdb_fullseq)
         env = modeller.environ()
+        env.io.hetatm = True
         print("Aligning sequences...")
         aln = modeller.Alignment(env)
         aln.append(file=code+".seq", align_codes=code)

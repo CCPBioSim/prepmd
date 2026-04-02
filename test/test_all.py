@@ -69,7 +69,6 @@ class TestRun:
             write_params=str(tmp_path)+sep+"params.json",
             thermo_out_file=str(tmp_path)+sep+"thermo.txt",
             checkpoint_output=str(tmp_path)+sep+"checkpoint.dat")
-        assert True
 
     def test_minimise_run(self, tmp_path):
         run(test_file, minimised_structure_out=str(tmp_path)+"101m_prof_min.cif",
@@ -78,7 +77,6 @@ class TestRun:
             write_params=str(tmp_path)+sep+"params.json",
             thermo_out_file=str(tmp_path)+sep+"thermo.txt",
             checkpoint_output=str(tmp_path)+sep+"checkpoint.dat")
-        assert True
 
     def test_variable_langevin(self, tmp_path):
         run(test_file,
@@ -99,7 +97,6 @@ class TestRun:
             write_params=str(tmp_path)+sep+"params.json",
             thermo_out_file=str(tmp_path)+sep+"thermo.txt",
             checkpoint_output=str(tmp_path)+sep+"checkpoint.dat")
-        assert True
 
     def test_fix_backbone(self, tmp_path):
         run(test_file,
@@ -118,6 +115,14 @@ class TestRun:
             minimised_structure_out = str(tmp_path)+"_min.pdb",
             meta_rmsd_threshold_nm = 0.27)
 
+    def test_ligand(self, tmp_path):
+        testpath = os.path.dirname(file_path)+sep+"test_data"+sep
+        run(testpath+"3PDT_out.pdb",
+            traj_out=str(tmp_path)+"3PDT.xtc", md_steps=6, step=2,
+            ligands = [testpath+"ADP.sdf"],
+            write_params=str(tmp_path)+sep+"params.json",
+            thermo_out_file=str(tmp_path)+sep+"thermo.txt",
+            checkpoint_output=str(tmp_path)+sep+"checkpoint.dat")
 
 test_aln1 = os.path.dirname(file_path)+sep+"test_data"+sep+"6xov_prep.pdb"
 test_aln2 = os.path.dirname(file_path)+sep+"test_data"+sep+"6xou_prep.pdb"

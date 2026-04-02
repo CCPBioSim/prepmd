@@ -11,6 +11,8 @@ dependencies = [
    "biopython",
    "pdb2pqr",
    "mdanalysis",
+   "rdkit",
+   "openmmforcefields",
 #  "requests",
 #  "openmm==8.2.0",
 #  "pdbfixer==1.11",

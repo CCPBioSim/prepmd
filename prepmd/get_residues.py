@@ -11,7 +11,7 @@ except:
 from prepmd import util
 
 
-def get_residues_pdb(pdb, code):
+def get_residues_pdb(pdb, code, get_hetatms=False):
     """
     Get the fasta sequence of residues in the ATOM entries of a PDB or mmCif
     file.
@@ -25,6 +25,8 @@ def get_residues_pdb(pdb, code):
         raise ImportError("Can't run without MODELLER and a valid license key")
     log.none()
     e = Environ()
+    if get_hetatms:
+        e.io.hetatm = True
     m = Model(e, file=pdb)
     aln = Alignment(e)
     aln.append_model(m, align_codes=code)
@@ -34,7 +36,7 @@ def get_residues_pdb(pdb, code):
     return original_fasta
 
 
-def get_fullseq_pdb(pdb, code):
+def get_fullseq_pdb(pdb, code, get_hetatms=False):
     """
     Get the fasta sequence of residues in the SEQRES records of a PDB/mmCif
     file.
@@ -45,7 +47,7 @@ def get_fullseq_pdb(pdb, code):
         the fasta sequence as a string
     """
     seqres = {}
-
+    hetatms_found = False
     # pdb
     with open(pdb) as file:
         for line in file:
@@ -56,6 +58,8 @@ def get_fullseq_pdb(pdb, code):
                     seqres[chain] = []
                 sequence = split[4:]
                 seqres[chain] += (sequence)
+            if line.startswith("HET") and not hetatms_found and get_hetatms:
+                hetatms_found = True
 
     # mmcif
     if seqres == {}:
@@ -72,7 +76,13 @@ def get_fullseq_pdb(pdb, code):
                         sequence = line.split()[2]
                         seqres[chain] .append(sequence)
                 if line.startswith("#"):
-                    reading_seq = False
+                    reading_seq = False # TODO: option to add marker for hetatms
+                if line.startswith("HET") and not hetatms_found and get_hetatms:
+                    hetatms_found = True
+                    
+    if hetatms_found:
+        last_key = sorted(seqres.keys())[-1]
+        seqres[last_key] += ["..."] # not '.h.'?
 
     # convert to fasta
     fastas = []

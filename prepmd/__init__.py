@@ -10,4 +10,5 @@ from . import align_together
 from . import add_modeller_license
 from . import point_cloud
 from . import lib
+from . import ligand
 __version__ = "1.0"

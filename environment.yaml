@@ -13,3 +13,5 @@ dependencies:
   - biopython
   - pytest
   - mdanalysis
+  - openmmtools
+  - rdkit

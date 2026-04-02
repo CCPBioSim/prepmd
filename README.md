@@ -12,6 +12,8 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * [X] Automatically trim together structures to be the same length
 * [X] Run simple MD simulations for testing, validation and minimisation
 * [X] Create 'morph' trajectories with metadynamics
+* [X] Automatically extract and fix hetatms\ligands
+* [X] Output PQR files
 * [ ] Automatically propagate metadata through to finalised structure files
 * [ ] AIIDA integration
 
@@ -36,6 +38,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 By default, `prepmd` will read missing residues from the pdb/mmcif metadata, attempt to align the missing residues with the currently present residues, and then build missing loops. You can manually provide a FASTA file containing the alignment data with `--fasta`. You can also ask prepmd to get the sequence data from UNIPROT instead, with `--download`, though this is not recommended, as the raw sequence data can be different from the PDB and cause the alignment to fail.
 ### Other usage notes
 * `prepmd` will attempt to guess the correct file format from the filenames it's given. It won't perform implicit conversions, so make sure to start and end with the same file type.
+* By default, `prepmd` removes ligands and other molecules from the input and saves each residue to a separate SDF file. You can disable this behaviour with the `--ignore_hettams` flag.
 * By default, `prepmd` will leave intermediate files in a randomly-named temporary directory. You can set the name of this directory: `prepmd --wdir 6xov_temp 6xov 6xov.cif`.
 * While both pdb and mmCif are supported, using the mmCif format is strongly recommended, as the pdb format has been deprecated since 2024.
 * Use `prepmd --help` for a full list of parameters. 
@@ -51,6 +54,8 @@ By default, `prepmd` will read missing residues from the pdb/mmcif metadata, att
 `runmd structure.cif -o structure_minimised.cif --traj_out traj.xtc --md_steps 500 --step 50 -ff amber14` runs with amber14. charmm36, amoeba, amber14 and amber19 are available, with charmm36 being the default.
 ### Equilibrate side chains:
 `runmd structure.cif -o structure_minimised.cif --fix_backbone -solv tip4pew --notest` will fix the backbone in place and only equilibrate side chains.
+### Add ligands:
+`runmd structure.cif -l LIG.sdf -ff amber14` runs a simulation with a ligand. You can add multiple ligands by using the `-l` argument multiple times. Ligands are simulated using OpenFF. OpenFF has limited compatibility with force fields and solvent models, so ligand simulations only run with the amber14 force field and explicit solvent. By default, ligand simulations also run with a smaller timestep.
 ### Create a morph trajectory:
 `runmd pre.cif -m post.cif -o minimised_out.pdb`  will create a trajectory that smoothly transitions between pre.cif and post.cif. This trajectory is created using OpenMM's metadynamics features. Note: this should only be used for visualisation/illustration as trajectories created this way are arbitrary representations of structural transitions that aren't guaranteed to represent the underlying physics and biology.
 If you have two files for the same structure which aren't aligned (e.g. they have slightly different starting/ending residues), you can trim the ends to align them: `aligntogether pre.cif post.cif pre_cropped.cif post_cropped.cif`
@@ -69,7 +74,7 @@ If you have two files for the same structure which aren't aligned (e.g. they hav
 AGPLv3
 
 ## Contributors
-prepmd is developed by Rob Welch. Thanks to Harry Swift for helping set up the CI. This project is funded by [DRIIMB](https://driimb.org/). prepmd makes use of 
+prepmd is developed by Rob Welch. Thanks to Harry Swift for helping set up the CI. This project is funded by [DRIIMB](https://driimb.org/).
 
 ## Dependencies
 * OpenMM
