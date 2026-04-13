@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        default: 'x.y.z'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+
+  release:
+    name: make github release
+    runs-on: ubuntu-24.04
+    steps:
+
+      - name: create release
+        uses: softprops/action-gh-release
+        with:
+          name: v${{ github.event.inputs.version }}
+          generate_release_notes: true
+          tag_name: ${{ github.event.inputs.version }}
+          
+  conda:
+    name: publish conda to anaconda.org
+    needs: release
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set version in conda recipe
+        run: |
+          sed -i "s/^{% set version = \".*\" %}$/{% set version = \"${{ github.event.inputs.version }}\" %}/" conda-recipe/meta.yaml
+          grep '{% set version' conda-recipe/meta.yaml
+
+      - name: Setup Conda (conda-forge only)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-variant: Miniforge3
+          python-version: "3.13.2"
+          auto-activate: false
+          conda-remove-defaults: true
+          channels: conda-forge salilab
+          channel-priority: strict
+
+      - name: Install build tools
+        shell: bash -l {0}
+        run: |
+          conda install -y conda-build anaconda-client
+          conda config --set anaconda_upload no
+
+      - name: Build package
+        shell: bash -l {0}
+        env:
+          PIP_NO_INDEX: "0"
+        run: |
+          PKG_PATH=$(conda build conda-recipe --output)
+          echo "PKG_PATH=$PKG_PATH" >> "$GITHUB_ENV"
+          conda build conda-recipe
+          test -f "$PKG_PATH"
+          echo "Built: $PKG_PATH"
+
+      - name: Upload to Anaconda
+        shell: bash -l {0}
+        env:
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        run: |
+          anaconda -t "$ANACONDA_API_TOKEN" upload "$PKG_PATH" --user CCPBioSim --forc
