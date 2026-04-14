@@ -18,7 +18,7 @@ from Bio.PDB.mmcifio import MMCIFIO
 try:
     import modeller
     modeller_found = True
-except ImportError:
+except:
     modeller_found = False
     pass
 from prepmd import get_residues, model
