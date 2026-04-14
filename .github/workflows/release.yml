@@ -35,12 +35,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-
-      - name: Set version in conda recipe
-        run: |
-          sed -i "s/^{% set version = \".*\" %}$/{% set version = \"${{ github.event.inputs.version }}\" %}/" conda-recipe/meta.yaml
-          grep '{% set version' conda-recipe/meta.yaml
-
+  
       - name: Setup Conda (conda-forge only)
         uses: conda-incubator/setup-miniconda@v3
         with:
