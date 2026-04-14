@@ -15,7 +15,12 @@ from Bio.PDB.MMCIFParser import MMCIFParser
 #from Bio.PDB import StructureAlignment
 import Bio.PDB
 from Bio.PDB.mmcifio import MMCIFIO
-import modeller
+try:
+    import modeller
+    modeller_found = True
+except ImportError:
+    modeller_found = False
+    pass
 from prepmd import get_residues, model
 import argparse
 # from Bio import Align
@@ -46,6 +51,8 @@ def align_modeller(s1, s2, code1="AAAA", code2="BBBB", outfile="alignment.out"):
         file.write("".join(pdb1_res))
     with open(code2+".seq", "w") as file:
         file.write("".join(pdb2_res))
+    if not modeller_found:
+        raise ImportError("Problem with MODELLER license key or installation")
     env = modeller.environ()
     print("Aligning sequences...")
     aln = modeller.Alignment(env)
