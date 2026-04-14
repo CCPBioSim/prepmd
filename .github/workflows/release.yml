@@ -43,7 +43,7 @@ jobs:
           python-version: "3.13.2"
           auto-activate: false
           conda-remove-defaults: true
-          channels: conda-forge salilab
+          channels: conda-forge,salilab
           channel-priority: strict
 
       - name: Install build tools
