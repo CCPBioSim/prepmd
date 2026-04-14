@@ -19,7 +19,7 @@ jobs:
     steps:
 
       - name: create release
-        uses: softprops/action-gh-release
+        uses: softprops/action-gh-release@v3
         with:
           name: v${{ github.event.inputs.version }}
           generate_release_notes: true
