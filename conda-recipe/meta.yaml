@@ -22,6 +22,7 @@ requirements:
     - openmmtools
     - rdkit
     - openff-toolkit
+    - pdb2pqr
 test:
   commands:
     - prep-license MODELIRANJE
