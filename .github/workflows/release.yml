@@ -68,4 +68,4 @@ jobs:
         env:
           ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         run: |
-          anaconda -t "$ANACONDA_API_TOKEN" upload "$PKG_PATH" --user CCPBioSim --forc
+          anaconda -t "$ANACONDA_API_TOKEN" upload "$PKG_PATH" --user CCPBioSim --force
