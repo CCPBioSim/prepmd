@@ -6,15 +6,6 @@ Created on Fri Feb 27 16:49:54 2026
 @author: rob
 """
 
-# updated idea
-# query the pdb api for small molecules
-# download small molecule SMILE strings
-# https://docs.openmm.org/latest/userguide/application/02_running_sims.html#small-molecule-parameters
-# also add an option to specify SMILE strings from the terminal
-# alternatively, i could write a version of this script:
-    # https://gist.github.com/PatWalters/c046fee2760e6894ed13e19b8c99193b
-# based on mdanalysis instead of prody that writes smile strings instead of rds
-
 # setup
 import MDAnalysis as mda
 from rdkit import Chem
@@ -25,32 +16,12 @@ from openff.toolkit import Molecule, Topology, ForceField
 from openff.interchange import Interchange
 from openff.interchange.components._packmol import UNIT_CUBE, pack_box
 from openff.units import unit
-
-#from prepmd.lib import mdaCIF
-
 from openmm.app import pdbxfile
 from MDAnalysis.converters.OpenMMParser import OpenMMTopologyParser
 from MDAnalysis.coordinates.memory import MemoryReader
 from openmm.app.modeller import Modeller
 from Bio.PDB import PDBParser, MMCIFIO
-#from openmm.app import Simulation, DCDReporter, StateDataReporter, Modeller, pdbfile
-#from openmm import LangevinMiddleIntegrator
-#from openmm.unit import kelvin, picosecond, picoseconds, nanometer, molar
-#from sys import stdout
 import numpy as np
-
-#from rdkit.Chem import AllChem
-#from io import StringIO
-#from openff.toolkit.topology import Molecule
-#from openmmforcefields.generators import SMIRNOFFTemplateGenerator
-
-
-#import os
-#os.chdir("/home/rob/Downloads")
-
-
-#pdb_name = "/home/rob/Downloads/101M.pdb"
-#smiles = []
 
 """
 Okay, here's my full laundry list of complaints about rdkit
@@ -70,18 +41,26 @@ molecule to the original molecule. however if you try to run this with the
 default settings it will claim there's 'no substructure match' despite the
 two molecules being the same molecule. to fix this you feed it a list of
 atom indices
-
-
-
 """
 
 
 def load_universe(pdb_path):
+    """
+    Create an mdanalysis universe from a structure file.
+    This uses a quick and dirty hack - going via openmm - to get an mmcif
+    file into mdanalysis, as mdanalysis does not natively support mmCif files,
+    despite the fact that the pdb format has been deprecated for two years (!)
+    at time of writing.
+    
+    Args:
+        pdb_path: path to a pdb or cif file
+    Returns:
+        an mdanalysis Universe object
+    """
     if ".cif" in pdb_path or ".mmcif" in pdb_path:
-        # exhaustingly, mdanalysis does not support mmcif
         pdbx = pdbxfile.PDBxFile(pdb_path)
         openmmtopol = OpenMMTopologyParser(pdbx.topology)
-        positions = pdbx.getPositions(asNumpy=True) * 10 # angstrom conversion
+        positions = pdbx.getPositions(asNumpy=True) * 10  # angstrom conversion
         mdatopol = openmmtopol._mda_topology_from_omm_topology(pdbx.topology)
         u = mda.Universe(mdatopol, positions, format=MemoryReader)
     else:
@@ -89,6 +68,8 @@ def load_universe(pdb_path):
     return u
 
 
+# will be removed next update
+"""
 def count_hetatm_residues(pdb_path):
     u = load_universe(pdb_path)
     hetatms = u.select_atoms('not protein and not water')
@@ -96,27 +77,42 @@ def count_hetatm_residues(pdb_path):
     if len(hetatm_residues) == None:
         return 0
     return len(hetatm_residues)
-
+"""
 
 # setup ligand system
+
+
 def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
+    """
+    Extract ligands from a structure file (pdb or mmcif) and write out a new,
+    ligand/hetatm-free structure file and sdf files containing the ligands.
     
+    Args:
+        pdb_path - path to input pdb or mmcif file, a string
+        new_pdb_output - filename for the new pdb file, a string. Otherwise the
+        existing pdb file will be overwritten.
+        neutralise_radicals - whether to remove free radicals. A bool.
+    Returns:
+        a list of strings, where each string is the filename of an sdf file
+        that has been written, which are named according to their residue.
+    """
+
     u = load_universe(pdb_path)
-    protein = u.select_atoms('protein') 
+    protein = u.select_atoms('protein')
     ligand = u.select_atoms('not protein and not water')
     if len(ligand) == None:
         print("No hetatms/ligands found.")
         return None
     else:
         print("Extracting hetatms/ligands...")
-    
+
     ligands = ligand.split("residue")
-    
+
     if not new_pdb_output:
         output_path = pdb_path
     else:
         output_path = new_pdb_output
-    
+
     if ".cif" in pdb_path or ".mmcif" in pdb_path:
         print("Warning: mdanalysis inexplicably  does not support writing "
               "mmcif files, so your structure will be written to a temporary"
@@ -128,10 +124,10 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
         io = MMCIFIO()
         io.set_structure(struc)
         io.save(output_path)
-        
+
     else:
         protein.write(output_path)
-    
+
     ligand_filenames = []
     ligands_written = {}
     for ligand in ligands:
@@ -141,9 +137,8 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
             resname += "_"+str(ligands_written[resname])
         else:
             ligands_written[resname] = 1
-        #ligand.write(resname+".sdf")
         mol = ligand.convert_to('RDKIT', inferrer=None)
-        
+
         # need to create a coordmap or rdkit rotates and translates the ligand
         # for absolutely no reason. luckily getting the positions of atoms in
         # rdkit is very easy. just make a conformer object and then iterate
@@ -157,315 +152,91 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
             pos = conf.GetAtomPosition(idx)
             coordmap[idx] = pos
             atommap.append([idx, idx])
-        
+
         # do not touch this or it WILL break
         # the molecule does not contain any hydrogens but in order to add
         # hydrogens you have to first run the removehs function, if you don't
         # do this it won't add any hydrogens but it definitely won't tell you
         # that anything is wrong
-        
         try:
             mol = Chem.RemoveHs(mol)
             mol = Chem.AddHs(mol, addCoords=True)
         except Exception as e:
             print("WARNING: Couldn't extract "+resname+" ("+str(e)+").")
             continue
-        
-        original_mol = copy.copy(mol)
-        
-        #print("RADICALS, CHARGE, HS, IMPLICIT ")
-        #for a in mol.GetAtoms():
-        #    radicals = a.GetNumRadicalElectrons()
-        #    hs = a.GetNumExplicitHs()
-        #    if not hs:
-        #        hs = 0
-        #    charge = a.GetFormalCharge()
-        #    ihs = a.GetNumImplicitHs()
-        #    print(str(radicals)+", "+str(hs)+", "+str(charge)+", "+str(ihs))
 
-        
-        #mol = Chem.AddHs(mol, addCoords=True)
-        
-        #remove radicals - what's with the pdb format?
+        original_mol = copy.copy(mol)
+
+        # remove radicals
         radicals_neutralised = 0
         if neutralise_radicals:
             for a in mol.GetAtoms():
                 rad = a.GetNumRadicalElectrons()
-                #print("Found "+str(rad)+" radicals")
                 if rad:
                     a.SetNumExplicitHs(rad)
                     a.SetNumRadicalElectrons(0)
                     radicals_neutralised += rad
-            #if radicals_neutralised > 0:
-            #    print("Added "+str(radicals_neutralised)+" hydrogens.")
-        
+
         mol = Chem.AddHs(mol, addCoords=True)
-        
-        #if neutralise_radicals:
-        #    num_radicals = 0
-        #    for a in mol.GetAtoms():
-        #        if a.GetNumRadicalElectrons() > 0 and a.GetFormalCharge() > 0:
-        #            a.SetNumRadicalElectrons(0)         
-        #            a.SetFormalCharge(0)
-        #            num_radicals += 1
-        #    if num_radicals > 0:
-        #        print("Removed "+str(num_radicals)+" radicals.")
-                                
-        #mol = Chem.AddHs(mol, addCoords=True)
+
         # if you don't call embedmolecule here then the molecule will have
         # exactly one atom in completely the wrong place that will cause the
         # simulation to immediately detonate. however, if you call
         # embedmolecule without a coordmap it will rotate and translate the
         # ligand. it does this out of spite and hatred for molecular modellers
-        #Chem.AllChem.EmbedMolecule(mol, coordMap = coordmap)
-        
-        #Chem.rdDistGeom.EmbedMultipleConfs(mol,10)
-        Chem.AllChem.EmbedMolecule(mol, coordMap = coordmap)
-        
+        Chem.AllChem.EmbedMolecule(mol, coordMap=coordmap)
+
         # i have to pass this stupid atommap rdMolAlign otherwise it won't
         # align the molecules because there's 'no substructure match' despite
         # them being literally the SAME MOLECULE
-        rmsd = Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
-        #print("rmsd: "+str(rmsd))
-        
+        # rmsd = Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
+        # print("rmsd: "+str(rmsd))
+
         Chem.AllChem.MMFFOptimizeMolecule(mol)
         Chem.AllChem.UFFOptimizeMolecule(mol)
-                
+
         writer = Chem.SDWriter(resname+".sdf")
         writer.write(mol)
         writer.close()
         ligand_filenames.append(resname+".sdf")
     return ligand_filenames
 
-#split_pdb_ligand(pdb_name, "101m_noligand.pdb")
-
-#for ligand, index in zip(ligands, range(len(ligands))):
-#    mol = Chem.MolFromPDBFile("ligand-"+str(index)+".pdb")
-    #smiles.append(Chem.MolToSmiles(mol))
-
-#print(smiles)
-    
-#for smile in smiles:
-#    molecule = Molecule.from_smiles(smile, allow_undefined_stereo=True) # ???
-#    smirnoff = SMIRNOFFTemplateGenerator(molecules=molecule)
-
-
-
-# import requests
-# import warnings
-# import time
-# import json
-
-# def get_pdb_components(pdb):
-#     u = mda.Universe(pdb) 
-#     protein = u.select_atoms('protein') 
-#     ligand = u.select_atoms('not protein and not water')
-#     return protein, ligand
-
-# def request_limited(url: str,
-#                     rtype: str = "GET",
-#                     num_attempts: int = 3,
-#                     sleep_time=0.5,
-#                     **kwargs):
-#     """
-#     HTML request with rate-limiting base on response code
-
-
-#     Parameters
-#     ----------
-#     url : str
-#         The url for the request
-#     rtype : str
-#         The request type (oneof ["GET", "POST"])
-#     num_attempts : int
-#         In case of a failed retrieval, the number of attempts to try again
-#     sleep_time : int
-#         The amount of time to wait between requests, in case of
-#         API rate limits
-#     **kwargs : dict
-#         The keyword arguments to pass to the request
-
-#     Returns
-#     -------
-
-#     response : requests.models.Response
-#         The server response object. Only returned if request was successful,
-#         otherwise returns None.
-
-#     """
-
-#     if rtype not in ["GET", "POST"]:
-#         warnings.warn("Request type not recognized")
-#         return None
-
-#     total_attempts = 0
-#     while (total_attempts <= num_attempts):
-#         if rtype == "GET":
-#             response = requests.get(url, **kwargs)
-#         elif rtype == "POST":
-#             response = requests.post(url, **kwargs)
-
-#         if response.status_code == 200:
-#             return response
-
-#         if response.status_code == 429:
-#             curr_sleep = (1 + total_attempts) * sleep_time
-#             warnings.warn("Too many requests, waiting " + str(curr_sleep) +
-#                           " s")
-#             time.sleep(curr_sleep)
-#         elif 500 <= response.status_code < 600:
-#             warnings.warn("Server error encountered. Retrying")
-#         total_attempts += 1
-
-#     warnings.warn("Too many failures on requests. Exiting...")
-#     return None
-
-# def get_info(pdb_id, url_root='https://data.rcsb.org/rest/v1/core/entry/'):
-#     '''Look up all information about a given PDB ID
-
-#     Parameters
-#     ----------
-
-#     pdb_id : string
-#         A 4 character string giving a pdb entry of interest
-
-#     url_root : string
-#         The string root of the specific url for the request type
-
-#     Returns
-#     -------
-
-#     out : dict()
-#         An ordered dictionary object corresponding to entry information
-
-#     '''
-#     pdb_id = pdb_id.replace(":", "/")  # replace old entry identifier
-#     url = url_root + pdb_id
-#     response = request_limited(url)
-
-#     if response is None or response.status_code != 200:
-#         warnings.warn("Retrieval failed, returning None")
-#         return None
-
-#     result = str(response.text)
-
-#     out = json.loads(result)
-
-#     return out
-
-# def describe_chemical(chem_id):
-# #     """
-
-# #     Parameters
-# #     ----------
-
-# #     chem_id : string
-# #         A 3 character string representing the full chemical sequence of interest (ie, NAG)
-
-# #     Returns
-# #     -------
-
-# #     out : dict
-# #         A dictionary containing the chemical description associated with the PDB ID
-
-# #     Examples
-# #     --------
-# #     >>> chem_desc = describe_chemical('NAG')
-# #     >>> print(chem_desc["rcsb_chem_comp_descriptor"]["smiles"])
-# #     'CC(=O)NC1C(C(C(OC1O)CO)O)O'
-# #     """
-#     if (len(chem_id) > 3):
-#         raise Exception("Ligand id with more than 3 characters provided")
-
-#     return get_info(chem_id, url_root = 'https://data.rcsb.org/rest/v1/core/chemcomp/')
-    
-
-# def process_ligand(ligand, res_name):
-#     """
-#     Add bond orders to a pdb ligand
-#     1. Select the ligand component with name "res_name"
-#     2. Get the corresponding SMILES from pypdb
-#     3. Create a template molecule from the SMILES in step 2
-#     4. Write the PDB file to a stream
-#     5. Read the stream into an RDKit molecule
-#     6. Assign the bond orders from the template from step 3
-#     :param ligand: ligand as generated by prody
-#     :param res_name: residue name of ligand to extract
-#     :return: molecule with bond orders assigned
-#     """
-#     output = StringIO()
-#     sub_mol = ligand.select_atoms(f"resname {res_name}")
-#     chem_desc = describe_chemical(f"{res_name}")
-#     sub_smiles = chem_desc["describeHet"]["ligandInfo"]["ligand"]["smiles"]
-#     template = AllChem.MolFromSmiles(sub_smiles)
-#     writePDBStream(output, sub_mol)
-#     pdb_string = output.getvalue()
-#     rd_mol = AllChem.MolFromPDBBlock(pdb_string)
-#     new_mol = AllChem.AssignBondOrdersFromTemplate(template, rd_mol)
-#     return new_mol
-
-
-
-
-
-
-
-
-#write_pdb(protein, pdb_name)
-#res_name_list = list(set(ligand.resnames))
-#for res in res_name_list:
-#    new_mol = process_ligand(ligand, res)
-    #write_sdf(new_mol, pdb_name, res)
-
-
-
-
-# from rdkit import Chem
-
-# import requests
-
-# url = "https://files.rcsb.org/download/1O1M.pdb"
-# r = requests.get(url, allow_redirects=True)
-# assert r.status_code == 200
-# pdb_complex = Chem.MolFromPDBBlock(r.content.decode("utf-8"), removeHs=False)
-
-# # Extract HDT ligand
-# hdt = list(filter(lambda frag: frag.GetNumAtoms()
-#     and frag.GetAtomWithIdx(0).GetPDBResidueInfo().GetResidueName() == "HDT",
-#     Chem.GetMolFrags(pdb_complex, asMols=True)))
-# assert len(hdt) == 1
-# hdt = hdt.pop(0)
-
-# #rdkit.Chem.rdmolfiles.MolToSmiles(mol)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 waters = {
     "tip3p": "tip3p.offxml",
     "tip4pew": "tip4p_ew.offxml"
-    }
+}
 
-# run ligand system
 
 def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
-                   positive_ion_smile = "[Na+]", negative_ion_smile = "[Cl-]",
-                   desired_charge_elementary = 0, water_ff="tip3p",
-                   solvent_smiles = "O", ff = "openff-2.2.0.offxml"):
-    
+                   positive_ion_smile="[Na+]", negative_ion_smile="[Cl-]",
+                   desired_charge_elementary=0, water_ff="tip3p",
+                   solvent_smiles="O", ff="openff-2.2.0.offxml"):
+    """
+    Solvate an openff system.
+    Args:
+        interchange: an openff interchange containing the protein AND ligand.
+        protein: protein loaded as an openff topology
+        ligands: a list of openff molecule objects
+        n_water: number of water molecules, an int. Will calculate if this is
+        not set.
+        gutter_nm: size of the gap between the protein and box edge in nm, a
+        float.
+        positive_ion_smile: smiles string for the positive ions
+        positive_ion_smile: smiles string for the negative ions
+        desired_charge_elementary: desired charge in units of the elementary
+        charge
+        water_ff: force field to use for the water. can be tip3p or tip4pew.
+        solvent_smiles: smiles string for the solvent molecule.
+        ff: force field to use, A string. Can be any openff force field.
+    Returns:
+        openff topology and an interchange for just the waters.
+    """
+
     all_molecules = [protein]+ligands
-    
-    total_charge = round(sum(interchange["Electrostatics"].charges.values()), 3)
+
+    total_charge = round(
+        sum(interchange["Electrostatics"].charges.values()), 3)
 
     ligand_charge = 0
     for ligand in ligands:
@@ -473,27 +244,29 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
     assert total_charge == protein.total_charge + ligand_charge, (
         f"Total charge of the system is {total_charge}, not {protein.total_charge + ligand.total_charge}"
     )
-    
+
     water = Molecule.from_smiles(solvent_smiles)
     water.generate_conformers(n_conformers=1)
-    
+
     if total_charge > desired_charge_elementary * unit.elementary_charge:
         ion = Molecule.from_smiles(negative_ion_smile)
     elif total_charge <= desired_charge_elementary * unit.elementary_charge:
         ion = Molecule.from_smiles(positive_ion_smile)
-        
-    num_ions = abs(int((total_charge/unit.elementary_charge) - (desired_charge_elementary)))
+
+    num_ions = abs(int((total_charge/unit.elementary_charge) -
+                   (desired_charge_elementary)))
 
     ion.generate_conformers(n_conformers=1)
-    
+
     xyz = protein.conformers[0]
     centroid = xyz.sum(axis=0) / xyz.shape[0]
     protein_radius = np.sqrt(((xyz - centroid) ** 2).sum(axis=-1).max())
     box_vectors = UNIT_CUBE * (protein_radius * 2 + gutter_nm * unit.nanometer)
-    
+
     if not n_water:
         box_vol_angstroms = np.array(box_vectors.to("angstrom").m.diagonal())
-        n_water = int(box_vol_angstroms.prod() / 70) # one water per 30A^3, old JAWS default
+        # one water per 30A^3, old JAWS default
+        n_water = int(box_vol_angstroms.prod() / 70)
         print("Adding "+str(n_water)+" water molecules.")
 
     docked_topology = Topology.from_molecules(all_molecules)
@@ -503,73 +276,96 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
         number_of_copies=[n_water, num_ions],
         solute=docked_topology,
         box_vectors=box_vectors,
-        center_solute = True,
+        center_solute=True,
     )
-    
+
     water_interchange = Interchange.from_smirnoff(
         force_field=ForceField(ff, waters[water_ff]),
         topology=([water] * n_water) + ([ion] * num_ions),
     )
-    
+
     return packed_topology, water_interchange
 
+
 def create_ligand_system(
-    protein_structure, # pdb finame
-    ligand_structures, # list of ligand filenames
-    n_water = None, # if None, calculate water automatically
-    water_ff = "tip3p", # tip3p or tip4pew only supported
-    solvent_smiles = "O",
-    gutter_nm=1,
-    positive_ion_smile = "[Na+]",
-    negative_ion_smile = "[Cl-]",
-    desired_charge_elementary = 0,
-    ff = "ff14sb_off_impropers_0.0.4.offxml",
-    ligand_ff = "openff-2.2.0.offxml"):
+        protein_structure,  # pdb finame
+        ligand_structures,  # list of ligand filenames
+        n_water=None,  # if None, calculate water automatically
+        water_ff="tip3p",  # tip3p or tip4pew only supported
+        solvent_smiles="O",
+        gutter_nm=1,
+        positive_ion_smile="[Na+]",
+        negative_ion_smile="[Cl-]",
+        desired_charge_elementary=0,
+        ff="ff14sb_off_impropers_0.0.4.offxml",
+        ligand_ff="openff-2.2.0.offxml"):
+    """
+    Set up an openmm system containing ligands using openff.
+    Args:
+        protein_structure: structure file path, pdb or mmcif, a string
+        ligand_structure: a list of strings where each string is a path to
+        an sdf file
+        n_water = None, # if None, calculate water automatically
+        positive_ion_smile: smiles string for the positive ions
+        positive_ion_smile: smiles string for the negative ions
+        desired_charge_elementary: desired charge in units of the elementary
+        charge
+        water_ff: force field to use for the water. can be tip3p or tip4pew.
+        solvent_smiles: smiles string for the solvent molecule.
+        ff: force field. For now, this is ff14sb_off_impropers_0.0.4.offxml as
+        it's the only one openff properly supports.
+        ff: force field to use for the ligand, A string. Can be any small
+        molecule force field supported by openff.
+    Returns:
+        an openmm system, topology and positions object.
+    """
 
     print("Setting up ligand simulation...")
     if water_ff not in waters.keys():
         raise ValueError("Water must be one of: "+",".join(waters.keys()))
-    
+
     protein_with_crystal_water = Topology.from_pdb(protein_structure)
     protein = protein_with_crystal_water.molecule(0)
-    
+
     ff14sb = ForceField(ff, waters[water_ff])
-    
+
     protein_intrcg = Interchange.from_smirnoff(
         force_field=ff14sb,
         topology=protein.to_topology(),
     )
-    
+
     ligands = []
     for ligand in ligand_structures:
         ligands.append(Molecule.from_file(ligand))
-    
+
     ligand_topology = Topology.from_molecules(ligands)
-        
-    ligand_force_field = ForceField(ligand_ff, waters[water_ff]) # includes tip3p
-        
-    ligand_intrcg = Interchange.from_smirnoff(ligand_force_field, ligand_topology)
-    
+
+    ligand_force_field = ForceField(
+        ligand_ff, waters[water_ff])  # includes tip3p
+
+    ligand_intrcg = Interchange.from_smirnoff(
+        ligand_force_field, ligand_topology)
+
     interchange = protein_intrcg.combine(ligand_intrcg)
-    
+
     print("Solvating...")
-    packed_topology, water_interchange = solvate_openff(interchange,protein,
+    packed_topology, water_interchange = solvate_openff(interchange, protein,
                                                         ligands, n_water=n_water,
                                                         gutter_nm=gutter_nm,
                                                         positive_ion_smile=positive_ion_smile, negative_ion_smile=negative_ion_smile,
                                                         desired_charge_elementary=desired_charge_elementary, water_ff=water_ff,
                                                         solvent_smiles=solvent_smiles,
-                                                        ff = ligand_ff)
-    
+                                                        ff=ligand_ff)
+
     solvated_interchange = interchange.combine(water_interchange)
     solvated_interchange.positions = packed_topology.get_positions()
     solvated_interchange.box = packed_topology.box_vectors
-    
+
     openmm_system = solvated_interchange.to_openmm()
     openmm_topology = solvated_interchange.to_openmm_topology()
     openmm_positions = solvated_interchange.positions.to_openmm()
-    
+
     # note: recommended settings:
-        # intergrator - variable langevin, tolerance: 0.0005 (or timestep < 0.001ps)
-        # minimisation - tolerance = 2.5 kilojoule/(nanometer*mole)
+    # intergrator - variable langevin, tolerance: 0.0005 (or timestep < 0.001ps)
+    # minimisation - tolerance = 2.5 kilojoule/(nanometer*mole)
     return openmm_system, openmm_topology, openmm_positions

@@ -72,7 +72,7 @@ parser.add_argument("-em", "--em_map",
 parser.add_argument("-c", "--contour",
                     help="Contour level for the EM map.", type=float)
 parser.add_argument("-il", "--ignore_hetatms",
-                    help="Strip hetatms/ligands from input file",
+                    help="Delete hetatms/ligands from input file",
                     action="store_true")
 
 
@@ -128,6 +128,8 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         em_map: path to an EM density map file (a string). If this is set,
         the best PDB will be picked based on similarity to the map.
         em_contour: contour level for the EM map, a float.
+        ignore_hetatms: if this is set to True, hetams will be removed and not
+        written to sdf files.
     Returns:
         nothing, but writes out a file to outmodel.
     """
