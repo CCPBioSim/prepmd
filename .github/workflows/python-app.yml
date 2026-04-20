@@ -22,7 +22,7 @@ jobs:
         python-version: ["3.13"]
 
     env:
-      KEY_MODELLER: MODELIRANJE
+      KEY_MODELLER: ${{ secrets.MODELLER_KEY }}
 
     steps:
       - name: Checkout repo
@@ -58,4 +58,4 @@ jobs:
 
       - name: Run test suite
         shell: bash -l {0}
-        run: prep-license MODELIRANJE && pytest -v
+        run: prep-license ${{ secrets.MODELLER_KEY }} && pytest -v

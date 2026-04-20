@@ -18,10 +18,10 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 ## Installation
 
 ### Install via conda
-* Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it)
+* Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it). If you have an existing conda install, make sure it can install packages from conda-forge.
 * Recommended: create a new virtual environment: `conda env create --name prepmd && conda activate prepmd`
-* Install prepmd from the CCPBioSim conda channel: `conda install -c conda-forge -c prepmd`
-* Add your [modeller license key](https://salilab.org/modeller/registration.html) by running `prep-license <your license key` 
+* Install prepmd from the CCPBioSim conda channel: `conda install -c CCPBioSim prepmd`
+* Add your [modeller license key](https://salilab.org/modeller/registration.html) by running `prep-license <your license key>` 
 
 ### Manual install
 * Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it)
@@ -32,21 +32,23 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 ## Quickstart
 
-`prepmd 6xov 6xov_processed.cif` will download the structure for PDB entry `6xov`, process it and write it to `6xov_processed.cif`. If you have a local structure file, you can use the `--structure` parameter, though you'll still need to list a PDB code (it's not important what the code is, but some of the file foramts used by prepmd require a code to be present.
-Note: .pdb support is provided for legacy compatibility, but using the mmCif format is strongly recommended, as the pdb format is deprecated.
-`runmd 6xov_processed.cif --traj_out traj.xtc --md_steps 5000` will minimise and run a simulation of structure.cif using OpenMM, writing a trajectory to `traj_out.xtc`, for 5000 steps. By default, `runmd` uses a minimal set of simulation parameters, which aren't likely to be accurate - check the `runmd` section of this documentation for more options
+`prepmd --ignore_hetatms 6xov 6xov_processed.cif` will download the structure for PDB entry `6xov`, process it and write it to `6xov_processed.cif`.
+
+`runmd 6xov_processed.cif --traj_out traj.xtc --md_steps 5000` will minimise and run a simulation of 6xov_processed.cif writing a trajectory to `traj_out.xtc`, for 5000 steps. By default, `runmd` uses a minimal set of simulation parameters, which aren't likely to be accurate - check the `runmd` section of this documentation for more options
 
 ## Preparing structure files for simulation with prepmd
 
+Note: When runnig `prepmd`, we recommend using .mmCif files where possible. The .pdb file format is deprecated, and is provided for legacy compatibility.
+
 ### prepmd workflow
 Steps in the `prepmd` workflow:
-* The structure file(s) are downloaded (if not supplied) into a working directory. PDB and mmCif are supported, though mmCif is recommended. `prepmd` automatically infers the file format from the file extension of the input/output files.
-* `prepmd` extracts the sequence from the residues in the PDB directly and compares them to a reference sequence. By default this is the sequence described in the SEQRES entries of the structure file. The two sequences are alligned and [MODELLER]() is used to fill in the missing residues.
+* The structure file(s) are downloaded (if not supplied) into a working directory. `prepmd` automatically infers the file format from the file extension of the input/output files.
+* `prepmd` extracts the sequence from the residues in the PDB directly and compares them to a reference sequence. By default this is the sequence described in the SEQRES entries of the structure file. The two sequences are alligned and [MODELLER](https://salilab.org/modeller/) is used to fill in the missing residues.
 * Optionally, multiple models can be created, and scored based on MODELLER's internal metrics or their similarity to a reference EM density map.
-* HETATMS are extracted from the structure file and saved to .sdf files. [rdkit]() is used to add hydrogens and correct the geometry of the ligands.
-* PDBFixer is used to add misisng hydrogens and remove nonstandard residues.
-* Optionally, at this point, a PQR file can be output using PDB2PQR.
-* Finally, OpenMM is used to perform a test minimisation and simulation. This step ensures that the resulting file is ready for simulation and that there are no steric clashes. If the minimisation or test simulation fails, it will be retried with OpenMM's variable langevin integrator. In testing, this has successfully minimised structure files with high clash scores.
+* HETATMS are extracted from the structure file and saved to .sdf files. [rdkit](https://www.rdkit.org/) is used to add hydrogens and correct the geometry of the ligands.
+* [PDBFixer](https://github.com/openmm/pdbfixer) is used to add missing hydrogens and remove nonstandard residues.
+* Optionally, at this point, a PQR file can be output using [PDB2PQR](https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/apbs/pdb2pqr.html).
+* Finally, (OpenMM)[https://openmm.org/] is used to perform a test minimisation and simulation. This step ensures that the resulting file is ready for simulation and that there are no steric clashes. If the minimisation or test simulation fails, it will be retried with OpenMM's variable langevin integrator. In testing, this has successfully minimised structure files with high clash scores.
 * The final, mimimised structure file will be written out. Note: if ligands are present, the non-minimised structure will be written instead - this is to allow the user to choose which ligand files to include in their final structure, which can be minimised using `runmd`.
 
 ### prepmd command-line reference
@@ -63,16 +65,16 @@ Steps in the `prepmd` workflow:
 #### Use your own alignments and sequences to fill missing loops
 By default, `prepmd` will read missing residues from the pdb/mmcif SEQRES records, attempt to align the missing residues with the currently present residues, and then build missing loops with MODELLER. You can manually provide an aligned FASTA file containing the the complete and incomplete sequences with `--fasta`.  You can also ask prepmd to get the sequence data from UNIPROT instead, with `--download`, though this is not recommended, as the raw sequence data can be substantially different from the PDB and cause the alignment to fail.
 #### Handling ligands
-* By default, `prepmd` removes ligands and other molecules from the input and saves each HETATM residue to its own SDF file. You can disable this behaviour with the `--ignore_hetatams` flag. The co-ordinates inside the SDF files correspond to the co-ordinates of the ligands in the structure file, so the ligands can be added back into the original structure easily. `prepmd` uses [rdkit]() to add hydrogens and correct the geometry of small molecules. 
+By default, `prepmd` removes ligands and other molecules from the input and saves each HETATM residue to its own SDF file. If you don't intend to include the hetatms, you can disable this behaviour with the `--ignore_hetatams` flag. The co-ordinates inside the SDF files correspond to the co-ordinates of the ligands in the structure file, so the ligands can be added back into the original structure easily. `prepmd` uses [rdkit]() to add hydrogens and correct the geometry of small molecules. 
 #### Working directory
-* By default, `prepmd` will leave intermediate files in a randomly-named temporary directory. You can set the name of this directory: `prepmd --wdir 6xov_temp 6xov 6xov.cif`.
+By default, `prepmd` will leave intermediate files in a randomly-named temporary directory. You can set the name of this directory: `prepmd --wdir 6xov_temp 6xov 6xov.cif`.
 
 ## Running MD simulations with runmd
 Steps in the `runmd` workflow:
 * Validate user input - runmd will attempt to infer the best parameters and halt if incompatible/impossible settings are used.
-* Create an OpenMM system object. If small molecules are present, `runmd` will also load the OpenFF Sage small molecule force field.
+* Create an OpenMM system object. If small molecules are present, `runmd` will also load the [OpenFF](https://openforcefield.org/) Sage small molecule force field.
 * If there is explicit solvent, set up the simulation box and solvate the system.
-* If the run is a metadynamics run, setup bias variables and forces using [openmmtools]().
+* If the run is a metadynamics run, setup bias variables and forces using [openmmtools](https://openmmtools.readthedocs.io/en/stable/).
 * Attempt to minimise and run the simulation with OpenMM. If the run/minimisation crashes, the numerical integrator will automatically be switched to the variable langevin integrator and the simulation will be restarted.
 * If the run is a metadynamics run, and the metadynamics collective variables aren't minimised, the simulation will restart.
 
@@ -97,19 +99,23 @@ If you have two files for the same structure which aren't aligned (e.g. they hav
 ### Numerical integrators
 * Set the numerical integrator with the `-i` flag. This can be either `VariableLangevinIntegrator` or `LangevinMiddleIntegrator`. By default, `runmd` will attempt to use the latter, and fall back to the former if the simulation becomes numerically unstable. The parameter `--minimise-err` sets the error tolerance or the variable langevin integrator. Its value is arbitrary - 0.001 is a good starting point, increasing it will make the simulation run faster at the expense of accuracy.
 ### Other settings
-* By default, `runmd` will try to select the most optimal nonbonded interaction method, but this can be overridden with `-nb` or `--nonbonded`, which can be one of `PME`, `CutoffPeriodic`, or `CutoffNonPeriodic`
-* By default, `runmd` will constrain the length of all bonds involving a hydrogen atom, which can allow for longer timesteps at the cost of some accuracy. This can be disabled by setting `-c None` or `--constraints None`. This setting is also disabled if the backbone is fixed.
+By default, `runmd` will try to select the most optimal nonbonded interaction method, but this can be overridden with `-nb` or `--nonbonded`, which can be one of `PME`, `CutoffPeriodic`, or `CutoffNonPeriodic`. Similarly, it will constrain the length of all bonds involving a hydrogen atom, which can allow for longer timesteps at the cost of some accuracy. This can be disabled by setting `-c None` or `--constraints None`. This setting is also disabled if the backbone is fixed.
 
 ## What next?
-* Though you can run simple MD simulations, minimisations and validation with prepmd, for more in-depth MD we recommend using software such as GROMACS, AMBER, NAMD and OpenMM.
+* Though you can run simple MD simulations, minimisations and validation with `prepmd`, for more in-depth MD we recommend using software such as GROMACS, AMBER, NAMD and OpenMM.
 * If you're looking to generate an atomistic structure file that matches your EM map as closely as possible, you can use a flexible fitting tool such as [TEMPy-ReFF](https://gitlab.com/topf-lab/tempy-reff).
 
 ## Python API
-prepmd's is also accessible via a python API:
-```
-from prepmd.prep import prep, run
-prep.prep("6xov", "6xov.cif", "working_dir")
-run.run("6xov.cif", traj_out="traj.xtc")
+prepmd is also accessible via a python API:
+```python
+from prepmd.add_modeller_license import setup_license
+setup_license(<your license key>) # only needs to be done once
+
+from prepmd.prep import prep
+prep("6xov", "6xov.cif", "working_dir")
+
+from prepmd.run import run
+run("6xov.cif", traj_out="traj.xtc")
 ```
 
 ## Licence

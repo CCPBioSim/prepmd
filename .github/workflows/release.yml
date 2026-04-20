@@ -35,6 +35,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+          
+      - name: Update modeller key
+        shell: bash -l {0}
+        run: |
+          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' conda-build/meta.yml
   
       - name: Setup Conda (conda-forge only)
         uses: conda-incubator/setup-miniconda@v3

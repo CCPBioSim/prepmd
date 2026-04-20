@@ -13,14 +13,7 @@ import sys
 
 HELP_MSG =  "Usage: prep-license LICENSE-KEY (will replace current key)"
 
-def entry_point():
-    if len(sys.argv) != 2:
-        print(HELP_MSG)
-        sys.exit(0)
-    if sys.argv[1] == "--help" or sys.argv[1] == "-h":
-        print(HELP_MSG)
-        sys.exit(0)
-    key = sys.argv[1]
+def setup_license(key):
     modeller_init_path = Path(importlib.util.find_spec("modeller").origin)
     modeller_lib = modeller_init_path.parent.parent.absolute() / "modeller" / "config.py"
     with open(modeller_lib) as file:
@@ -30,6 +23,16 @@ def entry_point():
     contents[1] = contents_1_new
     with open(modeller_lib, "w") as file:
         file.writelines(contents)
+
+def entry_point():
+    if len(sys.argv) != 2:
+        print(HELP_MSG)
+        sys.exit(0)
+    if sys.argv[1] == "--help" or sys.argv[1] == "-h":
+        print(HELP_MSG)
+        sys.exit(0)
+    key = sys.argv[1]
+    setup_license(key)
     print("Updated modeller license info.")
 
 if __name__ == "__main__":
