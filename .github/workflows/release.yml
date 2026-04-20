@@ -39,8 +39,8 @@ jobs:
       - name: Update modeller key
         shell: bash -l {0}
         run: |
-          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' prepmd/conda-build/meta.yml
-          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' prepmd/conda-build/build.sh
+          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' $GITHUB_WORKSPACE/prepmd/conda-build/meta.yml
+          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' $GITHUB_WORKSPACE/prepmd/conda-build/build.sh
   
       - name: Setup Conda (conda-forge only)
         uses: conda-incubator/setup-miniconda@v3
