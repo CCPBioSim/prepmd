@@ -38,7 +38,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 ## Preparing structure files for simulation with prepmd
 
-Note: When runnig `prepmd`, we recommend using .mmCif files where possible. The .pdb file format is deprecated, and is provided for legacy compatibility.
+Note: When running `prepmd`, we recommend using .mmCif files where possible. The .pdb file format is deprecated, and is provided for legacy compatibility.
 
 ### prepmd workflow
 Steps in the `prepmd` workflow:
@@ -65,9 +65,11 @@ Steps in the `prepmd` workflow:
 #### Use your own alignments and sequences to fill missing loops
 By default, `prepmd` will read missing residues from the pdb/mmcif SEQRES records, attempt to align the missing residues with the currently present residues, and then build missing loops with MODELLER. You can manually provide an aligned FASTA file containing the the complete and incomplete sequences with `--fasta`.  You can also ask prepmd to get the sequence data from UNIPROT instead, with `--download`, though this is not recommended, as the raw sequence data can be substantially different from the PDB and cause the alignment to fail.
 #### Handling ligands
-By default, `prepmd` removes ligands and other molecules from the input and saves each HETATM residue to its own SDF file. If you don't intend to include the hetatms, you can disable this behaviour with the `--ignore_hetatams` flag. The co-ordinates inside the SDF files correspond to the co-ordinates of the ligands in the structure file, so the ligands can be added back into the original structure easily. `prepmd` uses [rdkit]() to add hydrogens and correct the geometry of small molecules. 
+By default, `prepmd` removes ligands and other molecules from the input and saves each HETATM residue to its own SDF file. If you don't intend to include the hetatms, you can disable this behaviour with the `--ignore_hetatams` flag. The co-ordinates inside the SDF files correspond to the co-ordinates of the ligands in the structure file, so the ligands can be added back into the original structure easily. `prepmd` uses [rdkit](https://www.rdkit.org/) to add hydrogens and correct the geometry of small molecules. 
 #### Working directory
 By default, `prepmd` will leave intermediate files in a randomly-named temporary directory. You can set the name of this directory: `prepmd --wdir 6xov_temp 6xov 6xov.cif`.
+#### Other notes
+Warning: `prepmd`'s output does not contain any of the metadata found in the original pdb. This is an intentional omission - a lot of metadata (pdb REMARKs, for example) is specific to the indexing of atoms, residues and chains in that file, which are usually changed by prepmd.
 
 ## Running MD simulations with runmd
 Steps in the `runmd` workflow:
@@ -97,7 +99,7 @@ The default settings result in a rather loose coupling to the heat bath. You can
 `runmd pre.cif -m post.cif -o minimised_out.pdb`  will create a trajectory that smoothly transitions between the structures in pre.cif and post.cif. This trajectory is created using openmmtools' metadynamics features. The metadynamics run applies arbitrary biasing forces to perform the transition, so this should only be used for visualisation/illustration, and may not represent the underlying physics and biology.
 If you have two files for the same structure which aren't aligned (e.g. they have slightly different starting/ending residues), you can trim the ends to align them: `aligntogether pre.cif post.cif pre_cropped.cif post_cropped.cif`
 ### Numerical integrators
-* Set the numerical integrator with the `-i` flag. This can be either `VariableLangevinIntegrator` or `LangevinMiddleIntegrator`. By default, `runmd` will attempt to use the latter, and fall back to the former if the simulation becomes numerically unstable. The parameter `--minimise-err` sets the error tolerance or the variable langevin integrator. Its value is arbitrary - 0.001 is a good starting point, increasing it will make the simulation run faster at the expense of accuracy.
+Set the numerical integrator with the `-i` flag. This can be either `VariableLangevinIntegrator` or `LangevinMiddleIntegrator`. By default, `runmd` will attempt to use the latter, and fall back to the former if the simulation becomes numerically unstable. The parameter `--minimise-err` sets the error tolerance or the variable langevin integrator. Its value is arbitrary - 0.001 is a good starting point, increasing it will make the simulation run faster at the expense of accuracy.
 ### Other settings
 By default, `runmd` will try to select the most optimal nonbonded interaction method, but this can be overridden with `-nb` or `--nonbonded`, which can be one of `PME`, `CutoffPeriodic`, or `CutoffNonPeriodic`. Similarly, it will constrain the length of all bonds involving a hydrogen atom, which can allow for longer timesteps at the cost of some accuracy. This can be disabled by setting `-c None` or `--constraints None`. This setting is also disabled if the backbone is fixed.
 
