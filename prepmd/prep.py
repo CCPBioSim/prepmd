@@ -138,6 +138,12 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     locals_copy = copy.copy(locals())
     locals_json = json.dumps(locals_copy)
     
+    # create output file in the working dir, copy it later, save working dir
+    final_dir = None
+    if os.path.dirname(outmodel) != "":
+        final_dir = os.path.dirname(outmodel)
+        outmodel = os.path.basename(outmodel)
+    
     # infer download format from output format
     if not download_format and not inmodel:
         if (".pdb") in outmodel:
@@ -269,7 +275,9 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     
     if fix_after:
         print("Fixing PDB")
-        fix.fix(outmodel, outmodel, fix_missing_atoms=fix_missing_atoms)
+        fix.fix(os.path.basename(outmodel),
+                os.path.basename(outmodel),
+                fix_missing_atoms=fix_missing_atoms)
 
     # TODO: why does this output broken pdbs?
     # also - this was due for a refactor anyway
@@ -291,7 +299,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
             integrator_str="LangevinMiddleIntegrator",
             pressure=None, test_sim_steps=250)
     else:
-        run.test_sim(outmodel, no_output = no_sim_output)
+        run.test_sim(os.path.basename(outmodel), no_output = no_sim_output)
     print("Done.")
     if ligand and no_sim_output:
         print("Note: "+outmodel+" has not been minimsed. This is because there"
@@ -300,9 +308,14 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     
     with open(write_metadata, "w") as file:
         file.write(locals_json)
+    
+    # restore user's desired destination folder
+    if final_dir:
+        outmodel = os.path.join(final_dir, outmodel)
 
     if not os.path.isabs(outmodel) and not pqr_out:
-        shutil.copyfile(outmodel, run_dir+os.path.sep+outmodel)
+        shutil.copyfile(os.path.basename(outmodel),
+                        run_dir+os.path.sep+outmodel)
         
     if not os.path.isabs(outmodel) and pqr_out:
         shutil.copyfile(pqr_out, run_dir+os.path.sep+pqr_out)

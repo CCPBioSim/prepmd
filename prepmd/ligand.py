@@ -115,7 +115,7 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
 
     if ".cif" in pdb_path or ".mmcif" in pdb_path:
         print("Warning: mdanalysis inexplicably  does not support writing "
-              "mmcif files, so your structure will be written to a temporary"
+              "mmcif files, so your structure will be written to a temporary "
               "pdb file and then converted to cif. This process may not work "
               "with all structures, make sure to so double-check the output!")
         protein.write(output_path+".pdb")

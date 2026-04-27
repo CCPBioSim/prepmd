@@ -133,6 +133,13 @@ def get_alignment_info(alignmentout):
     with open(alignmentout) as file:
         alignment = "".join(file.readlines())
     aln_missing, aln_filled = alignment.split(">")[1:]
+    
+    # fix for hetatms
+    if ".h." in aln_missing:
+        aln_missing = aln_missing.replace(".h.", "")
+        if "---" in aln_filled[-5:]:
+            aln_filled = "".join(aln_filled.rsplit("---", 1))
+    
     missing_residues, missing_gaps, missing_lengths = get_info(aln_missing)
     filled_residues, filled_gaps, filled_lengths = get_info(aln_filled)
     try:
@@ -348,4 +355,4 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
     if max_gap > 20:
         print("Warning: big missing loop ("+str(max_gap)+" residues)")
 
-    shutil.copy2(best_pdb, outmodel)
+    shutil.copy2(best_pdb, os.path.basename(outmodel))

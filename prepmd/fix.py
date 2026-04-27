@@ -54,6 +54,7 @@ def fix(pdb, out, fix_nonstandard_residues=True, fix_missing_atoms=False,
         remove_heterogens: whether to remove heterogens from the file, a bool
         fix_missing_hydrogens: whether to add missing hydrogens, a bool
     """
+    
     if ".cif" in pdb or ".mmcif" in pdb:
         fix_nonstandard_cif(pdb)
     fixer = PDBFixer(filename=pdb)
