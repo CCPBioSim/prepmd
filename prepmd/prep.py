@@ -71,8 +71,8 @@ parser.add_argument("-em", "--em_map",
                     "EM density map instead of the objective function.")
 parser.add_argument("-c", "--contour",
                     help="Contour level for the EM map.", type=float)
-parser.add_argument("-il", "--ignore_hetatms",
-                    help="Delete hetatms/ligands from input file",
+parser.add_argument("-he", "--hetatms",
+                    help="Split out hetatms into sdf files",
                     action="store_true")
 
 
@@ -93,7 +93,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
          quiet=False, fix_after=True, download_sequence=False,
          fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff="AMBER",
          pqr_out=None, redo=False, num_models=1, em_map=None,em_contour=None,
-         ignore_hetatms=False):
+         split_hetatms=False):
     """
     Prepare a PDB/MMCIF structure file for simulation.
     Args:
@@ -128,8 +128,8 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         em_map: path to an EM density map file (a string). If this is set,
         the best PDB will be picked based on similarity to the map.
         em_contour: contour level for the EM map, a float.
-        ignore_hetatms: if this is set to True, hetams will be removed and not
-        written to sdf files.
+        split_hetatms: if this is set to True, hetams will be written to sdf
+        files, otherwise they will be removed.
     Returns:
         nothing, but writes out a file to outmodel.
     """
@@ -164,6 +164,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     # check that input/output are specified in the same format
     # i'm not against converting the files but it shouldn't happen implicitly
     def in_string(substr, text): return text == None or substr in text.lower()
+    
     if in_string(".pdb", inmodel) and in_string(
             ".pdb", outmodel) and in_string("pdb", download_format):
         pass
@@ -259,17 +260,18 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     model.fix_missing_residues(code, fastafile, alignmentout, inmodel,
                                outmodel, workingdir, num_models=num_models,
                                em_map=em_map, em_contour=em_contour,
-                               keep_hetatms = not ignore_hetatms)
+                               keep_hetatms = split_hetatms)
     
     # strip heterogens
     no_sim_output = False
     ligands = ligand.split_pdb_ligand(inmodel)
-    if ligands and not ignore_hetatms:
+    if ligands and split_hetatms:
         print("Wrote hetatms/ligands to "+", ".join(ligands))
         no_sim_output = True # don't minimise the ligandless structure without
         # the ligands!
-    if ligands and ignore_hetatms:
-        print("Ligands found but will be ignored.")
+    if ligands and not split_hetatms:
+        print("Note: all hetatms/ligands will be removed!")
+            
     if not ligands:
         print("No ligands found.")
     
@@ -278,15 +280,6 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         fix.fix(os.path.basename(outmodel),
                 os.path.basename(outmodel),
                 fix_missing_atoms=fix_missing_atoms)
-
-    # TODO: why does this output broken pdbs?
-    # also - this was due for a refactor anyway
-    # maybe dump the data into another file instead
-    #print("Restoring metadata...")
-    #if ".pdb" in inmodel:
-    #    fix.restore_metadata_pdb(inmodel, outmodel)
-    #if ".cif" in inmodel or ".mmcif" in inmodel:
-    #    print("Metadata restoration not implemented for mmCif (yet)")
     
     if pqr_out:
         print("Creating PQR...")
@@ -309,24 +302,34 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     with open(write_metadata, "w") as file:
         file.write(locals_json)
     
-    # restore user's desired destination folder
+    # restore user's desired destination folder and handle abs/relative paths
     if final_dir:
         outmodel = os.path.join(final_dir, outmodel)
+        # if outdir is relative
+        if not os.path.isabs(final_dir):
+            outdir = run_dir+os.path.sep+final_dir+os.path.sep
+        else:
+            outdir = final_dir+os.path.sep
+    else:
+        outdir = run_dir+os.path.sep
 
-    if not os.path.isabs(outmodel) and not pqr_out:
+    # copy files
+    if not pqr_out:
         shutil.copyfile(os.path.basename(outmodel),
-                        run_dir+os.path.sep+outmodel)
+                        outdir+os.path.basename(outmodel))
+        print("Wrote structure file to "+outdir+os.path.basename(outmodel)+".")
         
-    if not os.path.isabs(outmodel) and pqr_out:
-        shutil.copyfile(pqr_out, run_dir+os.path.sep+pqr_out)
+    if pqr_out:
+        shutil.copyfile(pqr_out, outdir+pqr_out)
         print("Wrote final PQR file to "+pqr_out+".")
     
-    if not os.path.isabs(outmodel):
-        shutil.copyfile(write_metadata, run_dir+os.path.sep+write_metadata)
+    shutil.copyfile(write_metadata, outdir+write_metadata)
+    print("Wrote metadata to "+str(outdir+write_metadata))
     
-    if not os.path.isabs(outmodel) and ligands and not ignore_hetatms:
+    if ligands and split_hetatms:
         for lig in ligands:
-            shutil.copyfile(lig, run_dir+os.path.sep+lig)
+            shutil.copyfile(lig, outdir+lig)
+            print("Wrote hetatms to "+outdir+lig)
 
 
 def entry_point():
@@ -342,7 +345,7 @@ def entry_point():
          download_sequence=args.download, fix_missing_atoms=args.leavemissing,
          pqrff=args.pqrfmt, pqr_out=args.pqr,
          redo=args.redo, num_models=args.num, em_map=args.em_map,
-         em_contour=args.contour, ignore_hetatms=args.ignore_hetatms)
+         em_contour=args.contour, split_hetatms=args.hetatms)
 
 
 if __name__ == "__main__":

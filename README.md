@@ -17,22 +17,14 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 ## Installation
 
-### Install via conda
 * Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it). If you have an existing conda install, make sure it can install packages from conda-forge.
 * Recommended: create a new virtual environment: `conda env create --name prepmd && conda activate prepmd`
 * Install prepmd from the CCPBioSim conda channel: `conda install -c CCPBioSim prepmd`
 * Add your [modeller license key](https://salilab.org/modeller/registration.html) by running `prep-license <your license key>` 
 
-### Manual install
-* Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it)
-* Clone this repo and enter the folder: `git clone https://github.com/CCPBioSim/prepmd.git && cd prepmd` 
-* Run `conda env create --name prepmd --file environment.yaml && conda activate prepmd && pip install .`
-* For the MODELLER part of the workflow to work, you need a [modeller license key](https://salilab.org/modeller/registration.html) and add it to modeller's config.py file. If you use conda, the key will be in `envs/prep/lib/modeller-10.7/modlib/modeller/config.py` relative to the path where conda is installed.
-* After installing, run `pytest` to run tests.
-
 ## Quickstart
 
-`prepmd --ignore_hetatms 6xov 6xov_processed.cif` will download the structure for PDB entry `6xov`, process it and write it to `6xov_processed.cif`.
+`prepmd 6xov 6xov_processed.cif` will download the structure for PDB entry `6xov`, process it and write it to `6xov_processed.cif`.
 
 `runmd 6xov_processed.cif --traj_out traj.xtc --md_steps 5000` will minimise and run a simulation of 6xov_processed.cif writing a trajectory to `traj_out.xtc`, for 5000 steps. By default, `runmd` uses a minimal set of simulation parameters, which aren't likely to be accurate - check the `runmd` section of this documentation for more options
 
@@ -45,10 +37,10 @@ Steps in the `prepmd` workflow:
 * The structure file(s) are downloaded (if not supplied) into a working directory. `prepmd` automatically infers the file format from the file extension of the input/output files.
 * `prepmd` extracts the sequence from the residues in the PDB directly and compares them to a reference sequence. By default this is the sequence described in the SEQRES entries of the structure file. The two sequences are alligned and [MODELLER](https://salilab.org/modeller/) is used to fill in the missing residues.
 * Optionally, multiple models can be created, and scored based on MODELLER's internal metrics or their similarity to a reference EM density map.
-* HETATMS are extracted from the structure file and saved to .sdf files. [rdkit](https://www.rdkit.org/) is used to add hydrogens and correct the geometry of the ligands.
+* Depending on settings, HETATMS may be extracted from the structure file and saved to .sdf files. [rdkit](https://www.rdkit.org/) is used to add hydrogens and correct the geometry of the ligands.
 * [PDBFixer](https://github.com/openmm/pdbfixer) is used to add missing hydrogens and remove nonstandard residues.
 * Optionally, at this point, a PQR file can be output using [PDB2PQR](https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/apbs/pdb2pqr.html).
-* Finally, (OpenMM)[https://openmm.org/] is used to perform a test minimisation and simulation. This step ensures that the resulting file is ready for simulation and that there are no steric clashes. If the minimisation or test simulation fails, it will be retried with OpenMM's variable langevin integrator. In testing, this has successfully minimised structure files with high clash scores.
+* Finally, [OpenMM](https://openmm.org/) is used to perform a test minimisation and simulation. This step ensures that the resulting file is ready for simulation and that there are no steric clashes. If the minimisation or test simulation fails, it will be retried with OpenMM's variable langevin integrator. In testing, this has successfully minimised structure files with high clash scores.
 * The final, mimimised structure file will be written out. Note: if ligands are present, the non-minimised structure will be written instead - this is to allow the user to choose which ligand files to include in their final structure, which can be minimised using `runmd`.
 
 ### prepmd command-line reference
@@ -65,7 +57,7 @@ Steps in the `prepmd` workflow:
 #### Use your own alignments and sequences to fill missing loops
 By default, `prepmd` will read missing residues from the pdb/mmcif SEQRES records, attempt to align the missing residues with the currently present residues, and then build missing loops with MODELLER. You can manually provide an aligned FASTA file containing the the complete and incomplete sequences with `--fasta`.  You can also ask prepmd to get the sequence data from UNIPROT instead, with `--download`, though this is not recommended, as the raw sequence data can be substantially different from the PDB and cause the alignment to fail.
 #### Handling ligands
-By default, `prepmd` removes ligands and other molecules from the input and saves each HETATM residue to its own SDF file. If you don't intend to include the hetatms, you can disable this behaviour with the `--ignore_hetatams` flag. The co-ordinates inside the SDF files correspond to the co-ordinates of the ligands in the structure file, so the ligands can be added back into the original structure easily. `prepmd` uses [rdkit](https://www.rdkit.org/) to add hydrogens and correct the geometry of small molecules. 
+By default, `prepmd` strips all HETATMS records from structure files. To keep these files, run prepmd with `--hetatms`, which will strip the HETATMS records from the structure file and write each residue to its own SDF file. The co-ordinates inside the SDF files correspond to the co-ordinates of the ligands in the structure file, so the ligands can be added back into the original structure easily. `prepmd` uses [rdkit](https://www.rdkit.org/) to add hydrogens and correct the geometry of small molecules. 
 #### Working directory
 By default, `prepmd` will leave intermediate files in a randomly-named temporary directory. You can set the name of this directory: `prepmd --wdir 6xov_temp 6xov 6xov.cif`.
 #### Other notes
@@ -138,3 +130,39 @@ AGPLv3
 * openmmtools
 * openff-toolkit
 * rdkit
+
+## Developer notes
+
+### Manual install
+* Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it)
+* Clone this repo and enter the folder: `git clone https://github.com/CCPBioSim/prepmd.git && cd prepmd` 
+* Run `conda env create --name prepmd --file environment.yaml && conda activate prepmd && pip install -e .`
+* For the MODELLER part of the workflow to work, you need a [modeller license key](https://salilab.org/modeller/registration.html) and add it to modeller's config.py file. If you use conda, the key will be in `envs/prep/lib/modeller-10.7/modlib/modeller/config.py` relative to the path where conda is installed.
+* After installing, run `pytest` to run tests.
+
+### Code structure
+* Prep structure
+    * prep.py - entry point, actual structure preparation happens in prep.prep
+    * model.py - calls to the MODELLER API and functions for parsing FASTA files and MODELLER output
+    * fix.py - calls to pdbfixer API and other small fixes for structure files
+    * get_residues.py - parse mmcif/pdb files and convert them to fasta sequences
+    * util.py - utility functions, mostly to do with residue sequences
+    * point_cloud.py - compare structure files with EM density maps
+    * download.py - download structures from various online services
+    * pdb2pqr - call to pdb2pqr API
+* Run structure
+    * run.py - calls to OpenMM for running simulations
+    * metadynamics.py - calls to openmmtools to set up metadynamics simulation
+* Other stuff\shared stuff
+    * add_modeller_license.py - command-line utility to add a license key to MODELLER
+    * ligand.py - parse structures contianing ligands (for system prep) and prepare ligand force field (for running simulations)
+    * align_together.py - command-line utility to trim two structure files to be the same length and have corresponding atom indices. Useful
+* Tests
+    * In test/test_all.py. All integration tests.
+
+## Style
+* All code is PEP8 formatted
+* Pure functions, minimal coupling and imperative style preferred. Code is mostly WET and functions are allowed to be long to reduce indirection and avoid hiding complexity.
+* All user-facing code (e.g. CLI) should have rigorous input validation and descriptive error messages
+* prep.py and run.py are both stateful in evil ways; MODELLER writes tons of junk to the working directory, so prep.py changes the working directory to a temporary folder and then copies output files to a path that the user has specified. This necessitates a bit of global state with the working directory, and also juggling different paths and accounting for relative/absolute paths provided by the user.
+* run.py is even more stateful - OpenMM objects are pretty stateful, and runmd can re-initialise openmm system objects, keep and restore old co-ordinates (if the simulation becomes numerically unstable) and also recursively call itself to try and fix metadynamics problems. This looks ugly as sin, but it's worth it for those features.

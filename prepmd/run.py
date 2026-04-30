@@ -540,7 +540,8 @@ def run(pdb,
         if write_morph:
             # write out pdbs and cifs as well
             final_traj = mda.Universe(pdb, traj_out)
-            frames = prepmd.metadynamics.get_representative_rmsd_frames(simulation.reporters[2].rmsd_log, 10)
+            frames = prepmd.metadynamics.get_representative_rmsd_frames(
+                simulation.reporters[2].rmsd_log, 10)
             filtered = final_traj.trajectory[frames]
             with mda.Writer("morph.xtc", final_traj.atoms.n_atoms) as w:
                 for frame in filtered:
