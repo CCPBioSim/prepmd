@@ -419,6 +419,7 @@ def run(pdb,
                 print("Could not minimise even with variable langevin "
                       "integrator.")
                 raise e
+    
     if test_run:
         try:
             print("Running test simulation...")
@@ -436,7 +437,7 @@ def run(pdb,
                 simulation.minimizeEnergy(
                     maxIterations = max_minimise_iterations,
                     tolerance = strict_min)
-                print("Fixed")
+                print("Fixed.")
                 curr_state = simulation.context.getState(
                     getPositions=True).getPositions(asNumpy=True)
                 if md_steps:
@@ -550,7 +551,7 @@ def run(pdb,
                 with mda.Writer("snapshot-"+str(frame)+".pdb") as w:
                     final_traj.trajectory[frame]
                     w.write(final_traj)
-            print("Done.")
+            print("Done simulating.")
         
 
 

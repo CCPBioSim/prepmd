@@ -134,7 +134,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         nothing, but writes out a file to outmodel.
     """
 
-    # don't look at this
+    # save all input parameters - will be written to a json file later
     locals_copy = copy.copy(locals())
     locals_json = json.dumps(locals_copy)
     
@@ -179,9 +179,11 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         raise IOError("PQR generation requires the PDB format to be used. "
                       "Please specify an input and output PDB!")
 
+    # create working dir
     if not os.path.isdir(workingdir):
         pathlib.Path(workingdir).mkdir(parents=True, exist_ok=True)
 
+    # copy input file to working dir
     if inmodel:
         shutil.copyfile(inmodel,
                         workingdir+os.path.sep+code+"."
@@ -189,7 +191,8 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         # note: modeller requires the filename to be the same as the pdb code
         # so here we change the filename
         inmodel = code+"."+download_format.replace("mmCif", "cif")
-        
+    
+    # dl em map file
     if em_map:
         print(em_map)
         if not Path.is_file(Path(str(em_map))):
@@ -199,6 +202,10 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
             shutil.copyfile(em_map,
                             workingdir+os.path.sep+os.path.basename(em_map))
 
+    # change working dir to temporary folder - note: this is an important bit
+    # of state - prep doesn't ever leave the working dir, instead we make a
+    # note of the user's curernt dir, if they supply a relative path then we
+    # copy files from the temp dir relative to that original path!
     run_dir = os.getcwd()
     os.chdir(workingdir)
 
@@ -221,7 +228,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
 
     # download structure
     if code and inmodel == None and folder == None:
-        print("Downloading structure file")
+        print("Downloading structure file...")
         inmodel = download.get_structure(
             code, workingdir, file_format=download_format, redo=redo)
         print("Downloaded to "+inmodel)
@@ -257,26 +264,30 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
                 "No sequence files found in folder or specified, could not"
                 "download sequence")
 
+    # fix missing residues (call MODELLER)
     model.fix_missing_residues(code, fastafile, alignmentout, inmodel,
                                outmodel, workingdir, num_models=num_models,
                                em_map=em_map, em_contour=em_contour,
                                keep_hetatms = split_hetatms)
     
-    # strip heterogens
+    # strip heterogens, or split them out if the user wants
     no_sim_output = False
-    ligands = ligand.split_pdb_ligand(inmodel)
-    if ligands and split_hetatms:
+    if split_hetatms:
+        ligands = ligand.split_pdb_ligand(inmodel)
+    #if ligands and split_hetatms:
         print("Wrote hetatms/ligands to "+", ".join(ligands))
         no_sim_output = True # don't minimise the ligandless structure without
         # the ligands!
-    if ligands and not split_hetatms:
-        print("Note: all hetatms/ligands will be removed!")
+    if not split_hetatms:
+        ligands = None
+        print("Note: all hetatms/ligands will be removed! Enable the 'split "
+              "hetatms/ligands' option to keep them.")
             
-    if not ligands:
-        print("No ligands found.")
+    if split_hetatms and not ligands:
+        print("Warning: 'split hetatms' is enabled but no hetatms were found.")
     
     if fix_after:
-        print("Fixing PDB")
+        print("Fixing PDB...")
         fix.fix(os.path.basename(outmodel),
                 os.path.basename(outmodel),
                 fix_missing_atoms=fix_missing_atoms)
@@ -285,19 +296,21 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         print("Creating PQR...")
         pqr.run_pdb2pqr(outmodel, pqr_out, ff=pqrff)        
 
+    # if the PQR is written then don't output a minimised structure file
     print("Simulating "+code)
     if pqr_out:
-        #run.test_sim(pqr_out)
         run.run(pqr_out, minimised_structure_out=None, md_steps=None,
             integrator_str="LangevinMiddleIntegrator",
             pressure=None, test_sim_steps=250)
+        print("Note: minimised structure file has not been written out, as "
+              "this would replace the PQR.")
     else:
         run.test_sim(os.path.basename(outmodel), no_output = no_sim_output)
     print("Done.")
     if ligand and no_sim_output:
-        print("Note: "+outmodel+" has not been minimsed. This is because there"
+        print("Note: "+outmodel+" is not minimsed. This is because there"
               " are possible ligands in the input file, and you may want to "
-              "add these back to the structure before running a simulation.")
+              "add these back to the structure before minimising!")
     
     with open(write_metadata, "w") as file:
         file.write(locals_json)
@@ -305,7 +318,6 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     # restore user's desired destination folder and handle abs/relative paths
     if final_dir:
         outmodel = os.path.join(final_dir, outmodel)
-        # if outdir is relative
         if not os.path.isabs(final_dir):
             outdir = run_dir+os.path.sep+final_dir+os.path.sep
         else:
@@ -313,7 +325,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     else:
         outdir = run_dir+os.path.sep
 
-    # copy files
+    # copy all output files (structure, ligands, pqr, etc) to output directory
     if not pqr_out:
         shutil.copyfile(os.path.basename(outmodel),
                         outdir+os.path.basename(outmodel))

@@ -1,6 +1,6 @@
 
 # prepmd
-[![prepmd CI](https://github.com/CCPBioSim/mdprep/actions/workflows/python-app.yml/badge.svg)](https://github.com/CCPBioSim/mdprep/actions/workflows/python-app.yml)
+[![prepmd CI](https://github.com/CCPBioSim/prepmd/actions/workflows/python-app.yml/badge.svg)](https://github.com/CCPBioSim/prepmd/actions/workflows/python-app.yml)
 
 A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations.
 
@@ -10,8 +10,8 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * Automatically add missing atoms and fix non-standard residues with pdbfixer
 * Automatically resolve steric clashes and minimise structures
 * Automatically align and trim together structures to be the same length
-* Automatically extract and prepare hetatms\ligands for simulation
-* Easily run simple MD simulations for testing, validation and minimisation
+* Automatically extract and prepare hetatms\ligands for simulation with rdkit
+* Easily run simple MD simulations for testing, validation and minimisation with OpenMM
 * Create 'morph' trajectories with metadynamics
 * Coming soon: integration with other MD\EM workflows!
 
@@ -26,11 +26,11 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 `prepmd 6xov 6xov_processed.cif` will download the structure for PDB entry `6xov`, process it and write it to `6xov_processed.cif`.
 
-`runmd 6xov_processed.cif --traj_out traj.xtc --md_steps 5000` will minimise and run a simulation of 6xov_processed.cif writing a trajectory to `traj_out.xtc`, for 5000 steps. By default, `runmd` uses a minimal set of simulation parameters, which aren't likely to be accurate - check the `runmd` section of this documentation for more options
+`runmd 6xov_processed.cif --traj_out traj.xtc --md_steps 5000` will minimise and run a simulation of 6xov_processed.cif writing a trajectory to `traj_out.xtc`, for 5000 steps. By default, `runmd` uses a minimal set of simulation parameters, which aren't likely to be accurate - check the `runmd` section of this documentation for more options.
 
 ## Preparing structure files for simulation with prepmd
 
-Note: When running `prepmd`, we recommend using .mmCif files where possible. The .pdb file format is deprecated, and is provided for legacy compatibility.
+Note: When running `prepmd`, we recommend using .mmCif files where possible. The .pdb file format is deprecated and is provided for legacy compatibility only.
 
 ### prepmd workflow
 Steps in the `prepmd` workflow:
@@ -162,7 +162,7 @@ AGPLv3
 
 ## Style
 * All code is PEP8 formatted
-* Pure functions, minimal coupling and imperative style preferred. Code is mostly WET and functions are allowed to be long to reduce indirection and avoid hiding complexity.
 * All user-facing code (e.g. CLI) should have rigorous input validation and descriptive error messages
-* prep.py and run.py are both stateful in evil ways; MODELLER writes tons of junk to the working directory, so prep.py changes the working directory to a temporary folder and then copies output files to a path that the user has specified. This necessitates a bit of global state with the working directory, and also juggling different paths and accounting for relative/absolute paths provided by the user.
+* Pure functions, minimal coupling and imperative style preferred. Code is mostly WET to reduce coupling where possible, with abstractions only being made where it's obviously necessary to do so. Functions are allowed to be long to reduce indirection and avoid hiding complexity. In particular, longer functions aren't broken up in a way that would require shorter functions to accept objects with a specific state as arguments.
+* prep.py and run.py are both stateful in evil ways; MODELLER writes tons of junk to the working directory, so prep.py changes the working directory to a temporary folder and then copies output files to a path that the user has specified. This necessitates a bit of global state, and also juggling different paths and accounting for relative/absolute paths provided by the user.
 * run.py is even more stateful - OpenMM objects are pretty stateful, and runmd can re-initialise openmm system objects, keep and restore old co-ordinates (if the simulation becomes numerically unstable) and also recursively call itself to try and fix metadynamics problems. This looks ugly as sin, but it's worth it for those features.
