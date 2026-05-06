@@ -28,7 +28,6 @@ codes = {
     "XAA": "X",
     "TYR": "Y",
     "GLX": "Z",
-    ".h.": ".h." # leave hetatms
 }
 
 
@@ -40,7 +39,7 @@ def is_residue(resid):
     Returns:
         a boolean that is true if the string is a valid residue
     """
-    return resid in codes
+    return resid in codes or list(set(resid)) == ["."]
 
 
 def is_residue_sequence(sequence):
@@ -68,6 +67,8 @@ def three_to_one(resid, ignore_non_standard=False):
     Returns:
         the fasta residue, a string
     """
+    if list(set(resid)) == ["."]: # hetatms
+        return resid
     if is_residue(resid):
         return codes[resid]
     if ignore_non_standard:
@@ -85,11 +86,13 @@ def three_to_one_sequence(resids):
     Returns:
         the residue sequence in FASTA format
     """
+    print(resids)
     pdb_sequence = ""
     non_standard = []
     for resid in resids:
         try:
-            pdb_sequence += codes[resid]
-        except KeyError:
+            pdb_sequence += three_to_one(resid)
+        except ValueError:
             non_standard.append(resid)
+    print(pdb_sequence)
     return pdb_sequence

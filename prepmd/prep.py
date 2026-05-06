@@ -274,7 +274,6 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     no_sim_output = False
     if split_hetatms:
         ligands = ligand.split_pdb_ligand(inmodel)
-    #if ligands and split_hetatms:
         print("Wrote hetatms/ligands to "+", ".join(ligands))
         no_sim_output = True # don't minimise the ligandless structure without
         # the ligands!

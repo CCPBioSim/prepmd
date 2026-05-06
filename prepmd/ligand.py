@@ -369,3 +369,9 @@ def create_ligand_system(
     # intergrator - variable langevin, tolerance: 0.0005 (or timestep < 0.001ps)
     # minimisation - tolerance = 2.5 kilojoule/(nanometer*mole)
     return openmm_system, openmm_topology, openmm_positions
+
+
+def get_ligand_centroid(pdb, traj):
+    universe = load_universe(pdb)
+    
+    ligand = u.select_atoms('not protein and not water')

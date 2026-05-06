@@ -9,6 +9,7 @@ try:
 except:
     NO_MODELLER = True
 from prepmd import util
+from prepmd import ligand
 
 
 def get_residues_pdb(pdb, code, get_hetatms=False):
@@ -76,13 +77,23 @@ def get_fullseq_pdb(pdb, code, get_hetatms=False):
                         sequence = line.split()[2]
                         seqres[chain] .append(sequence)
                 if line.startswith("#"):
-                    reading_seq = False # TODO: option to add marker for hetatms
+                    reading_seq = False
                 if line.startswith("HET") and not hetatms_found and get_hetatms:
                     hetatms_found = True
                     
     if hetatms_found:
+        # count hetatm residues and add an equivalent number of "." entries in
+        # the fasta sequence
+        universe = ligand.load_universe(pdb)
+        ligands = universe.select_atoms('not protein and not water')
+        num_hetatm_residues = len(ligands.split("residue"))
         last_key = sorted(seqres.keys())[-1]
-        seqres[last_key] += ["..."] # not '.h.'?
+        seqres[last_key] += [num_hetatm_residues*"."]
+
+        
+    if get_hetatms and not hetatms_found:
+        raise ValueError("Was told to retrieve hetatms from "+pdb+" but none "
+                         "were found.")
 
     # convert to fasta
     fastas = []
