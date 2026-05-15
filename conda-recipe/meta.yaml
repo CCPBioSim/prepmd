@@ -24,8 +24,8 @@ requirements:
     - openff-toolkit
     - pdb2pqr
 test:
-  commands:
-    - prep-license SECRET-MODELLER-LICENSE-KEY
+#  commands:
+#    - prep-license SECRET-MODELLER-LICENSE-KEY
   imports:
     - prepmd
 

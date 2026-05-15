@@ -21,8 +21,8 @@ jobs:
         os: [ubuntu-24.04, windows-2025, macos-15]
         python-version: ["3.13"]
 
-    env:
-      KEY_MODELLER: ${{ secrets.MODELLER_KEY }}
+    #env:
+      #KEY_MODELLER: ${{ secrets.MODELLER_KEY }}
 
     steps:
       - name: Checkout repo
@@ -58,4 +58,5 @@ jobs:
 
       - name: Run test suite
         shell: bash -l {0}
-        run: prep-license ${{ secrets.MODELLER_KEY }} && pytest -v
+        #run: prep-license ${{ secrets.MODELLER_KEY }} && pytest -v # no valid modeller key
+        run: pytest -v

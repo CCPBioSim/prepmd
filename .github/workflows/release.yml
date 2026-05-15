@@ -36,11 +36,11 @@ jobs:
         with:
           ref: main
           
-      - name: Update modeller key
-        shell: bash -l {0}
-        run: |
-          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' $GITHUB_WORKSPACE/conda-recipe/meta.yml
-          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' $GITHUB_WORKSPACE/conda-recipe/build.sh
+#      - name: Update modeller key
+#        shell: bash -l {0}
+#        run: |
+#          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' $GITHUB_WORKSPACE/conda-recipe/meta.yml
+#          sed -i -e 's/SECRET-MODELLER-LICENSE-KEY/${{ secrets.MODELLER_KEY }}/g' $GITHUB_WORKSPACE/conda-recipe/build.sh
   
       - name: Setup Conda (conda-forge only)
         uses: conda-incubator/setup-miniconda@v3
