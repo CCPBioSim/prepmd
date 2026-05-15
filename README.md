@@ -6,7 +6,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 ## Features
 * Automatically download structures, sequences and metadata from the PDB, PDB-REDO, EMDB and UNIPROT
-* Automatically fill missing loops with MODELLER
+* Automatically fill missing loops with MODELLER or pdbfixer
 * Automatically add missing atoms and fix non-standard residues with pdbfixer
 * Automatically resolve steric clashes and minimise structures
 * Automatically align and trim together structures to be the same length
@@ -20,7 +20,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it). If you have an existing conda install, make sure it can install packages from conda-forge.
 * Recommended: create a new virtual environment: `conda env create --name prepmd && conda activate prepmd`
 * Install prepmd from the CCPBioSim conda channel: `conda install -c CCPBioSim prepmd`
-* Add your [modeller license key](https://salilab.org/modeller/registration.html) by running `prep-license <your license key>` 
+* Optional: add your [modeller license key](https://salilab.org/modeller/registration.html) by running `prep-license <your license key>`. If you don't have a MODELLER license key, prepmd will instead use pdbfixer's loop builder.
 
 ## Quickstart
 
@@ -38,7 +38,7 @@ Steps in the `prepmd` workflow:
 * `prepmd` extracts the sequence from the residues in the PDB directly and compares them to a reference sequence. By default this is the sequence described in the SEQRES entries of the structure file. The two sequences are alligned and [MODELLER](https://salilab.org/modeller/) is used to fill in the missing residues.
 * Optionally, multiple models can be created, and scored based on MODELLER's internal metrics or their similarity to a reference EM density map.
 * Depending on settings, HETATMS may be extracted from the structure file and saved to .sdf files. [rdkit](https://www.rdkit.org/) is used to add hydrogens and correct the geometry of the ligands.
-* [PDBFixer](https://github.com/openmm/pdbfixer) is used to add missing hydrogens and remove nonstandard residues.
+* [PDBFixer](https://github.com/openmm/pdbfixer) is used to add missing hydrogens, remove nonstandard residues and add missing residues, if MODELLER isn't being used.
 * Optionally, at this point, a PQR file can be output using [PDB2PQR](https://www.cgl.ucsf.edu/chimera/docs/ContributedSoftware/apbs/pdb2pqr.html).
 * Finally, [OpenMM](https://openmm.org/) is used to perform a test minimisation and simulation. This step ensures that the resulting file is ready for simulation and that there are no steric clashes. If the minimisation or test simulation fails, it will be retried with OpenMM's variable langevin integrator. In testing, this has successfully minimised structure files with high clash scores.
 * The final, mimimised structure file will be written out. Note: if ligands are present, the non-minimised structure will be written instead - this is to allow the user to choose which ligand files to include in their final structure, which can be minimised using `runmd`.

@@ -86,7 +86,6 @@ def three_to_one_sequence(resids):
     Returns:
         the residue sequence in FASTA format
     """
-    print(resids)
     pdb_sequence = ""
     non_standard = []
     for resid in resids:
@@ -94,5 +93,4 @@ def three_to_one_sequence(resids):
             pdb_sequence += three_to_one(resid)
         except ValueError:
             non_standard.append(resid)
-    print(pdb_sequence)
     return pdb_sequence

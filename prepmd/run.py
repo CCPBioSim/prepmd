@@ -277,7 +277,12 @@ def run(pdb,
                                                                   desired_charge_elementary = ionic_strength._value,
                                                                   ff = ff,
                                                                   ligand_ff = ligand_ff,
-                                                                  n_water = 5000)
+                                                                  n_water = 5000,
+                                                                  output_topology=minimised_structure_out)
+        print("Note: topology written to "+str(minimised_structure_out)+" is "
+              "not minimised. This is because OpenMM cannot write a correct "
+              "topology for OpenFF ligands and solvents.")
+        # TODO: maybe write a separate file?
     
     else:
         # read in mmcif or pdb
@@ -451,7 +456,7 @@ def run(pdb,
     with open(write_params, "w") as file:
         file.write(locals_json)
 
-    if (minimise or test_run) and not no_output :
+    if (minimise or test_run) and not no_output and ligands == []:
         modeller_out = Modeller(simulation.topology, curr_state)
         if strip_solvent:
             modeller_out.deleteWater()
@@ -461,7 +466,7 @@ def run(pdb,
     else:
         if not no_output:
             print("Skipped minimisation and test run.")
-        if minimised_structure_out:
+        if minimised_structure_out and not (minimise or test_run):
             raise ValueError("Minimised structure output was requested, but"
                              " minimisation and test run were both skipped.")
         

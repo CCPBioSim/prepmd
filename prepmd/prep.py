@@ -74,6 +74,10 @@ parser.add_argument("-c", "--contour",
 parser.add_argument("-he", "--hetatms",
                     help="Split out hetatms into sdf files",
                     action="store_true")
+parser.add_argument("-nm", "--nomodeller",
+                    help="Don't use MODELLER to fill missing residues. Will "
+                    "use pdbfixer instead, which is less accurate.",
+                    action="store_true")
 
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
@@ -93,7 +97,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
          quiet=False, fix_after=True, download_sequence=False,
          fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff="AMBER",
          pqr_out=None, redo=False, num_models=1, em_map=None,em_contour=None,
-         split_hetatms=False):
+         split_hetatms=False, no_modeller=False):
     """
     Prepare a PDB/MMCIF structure file for simulation.
     Args:
@@ -178,6 +182,26 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     if pqr_out and download_format == "mmCif":
         raise IOError("PQR generation requires the PDB format to be used. "
                       "Please specify an input and output PDB!")
+        
+    if not fix_after and ligand:
+        raise ValueError("Cannot extract ligands because they will be "
+                         "removed by pdbfixer!")
+    
+    # if we don't have modeller, pdbfixer will fill the residues
+    if model.NO_MODELLER:
+        no_modeller = True
+    if no_modeller:
+        modeller_shim = True
+        print("MODELLER was not found or has been disabled, so PDBFixer will "
+              "be used to fill missing residues")
+    else:
+        modeller_shim = False
+        
+    if modeller_shim and num_models > 1:
+        print("WARNING: multiple model generation is enabled but MODELLER is "
+              "not. Multiple models will NOT be generated. If you need your"
+              "output to match an EM map, you can still use another tool"
+              "such as tempy-reff.")
 
     # create working dir
     if not os.path.isdir(workingdir):
@@ -236,7 +260,11 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     # fix
     if not fix_after:
         print("Fixing structure file...")
-        fix.fix(inmodel, inmodel, fix_missing_atoms=fix_missing_atoms)
+        #fix.fix(inmodel, inmodel, fix_missing_atoms=fix_missing_atoms,
+        #        fix_missing_residues=modeller_shim)
+        fix.fix(inmodel, inmodel)
+        if modeller_shim and not split_hetatms:
+            fix.remove_hetatms_unk(inmodel, inmodel)
 
     # get fasta sequence
     fastas = None
@@ -265,10 +293,11 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
                 "download sequence")
 
     # fix missing residues (call MODELLER)
-    model.fix_missing_residues(code, fastafile, alignmentout, inmodel,
-                               outmodel, workingdir, num_models=num_models,
-                               em_map=em_map, em_contour=em_contour,
-                               keep_hetatms = split_hetatms)
+    if not no_modeller:
+        model.fix_missing_residues(code, fastafile, alignmentout, inmodel,
+                                   outmodel, workingdir, num_models=num_models,
+                                   em_map=em_map, em_contour=em_contour,
+                                   keep_hetatms = split_hetatms)
     
     # strip heterogens, or split them out if the user wants
     no_sim_output = False
@@ -287,20 +316,26 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     
     if fix_after:
         print("Fixing PDB...")
-        fix.fix(os.path.basename(outmodel),
-                os.path.basename(outmodel),
-                fix_missing_atoms=fix_missing_atoms)
+        #fix.fix(os.path.basename(outmodel),
+        #        os.path.basename(outmodel),
+        #        fix_missing_atoms=fix_missing_atoms,
+        #        fix_missing_residues=modeller_shim)
+        fix.fix(os.path.basename(outmodel), os.path.basename(outmodel))
+        if modeller_shim and not split_hetatms:
+            fix.remove_hetatms_unk(os.path.basename(outmodel),
+                                   os.path.basename(outmodel))
     
     if pqr_out:
         print("Creating PQR...")
-        pqr.run_pdb2pqr(outmodel, pqr_out, ff=pqrff)        
+        pqr.run_pdb2pqr(outmodel, os.path.basename(pqr_out), ff=pqrff)        
 
     # if the PQR is written then don't output a minimised structure file
     print("Simulating "+code)
     if pqr_out:
-        run.run(pqr_out, minimised_structure_out=None, md_steps=None,
-            integrator_str="LangevinMiddleIntegrator",
-            pressure=None, test_sim_steps=250)
+        run.run(os.path.basename(pqr_out),
+                minimised_structure_out=None, md_steps=None,
+                integrator_str="LangevinMiddleIntegrator",
+                pressure=None, test_sim_steps=250)
         print("Note: minimised structure file has not been written out, as "
               "this would replace the PQR.")
     else:
@@ -329,9 +364,12 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         shutil.copyfile(os.path.basename(outmodel),
                         outdir+os.path.basename(outmodel))
         print("Wrote structure file to "+outdir+os.path.basename(outmodel)+".")
-        
-    if pqr_out:
-        shutil.copyfile(pqr_out, outdir+pqr_out)
+    
+    # note: this copies to outdir which is found from outmodel so the pqr
+    # currently can't go in a different folder
+    if pqr_out: 
+        shutil.copyfile(os.path.basename(pqr_out),
+                        outdir+os.path.basename(pqr_out))
         print("Wrote final PQR file to "+pqr_out+".")
     
     shutil.copyfile(write_metadata, outdir+write_metadata)
@@ -356,7 +394,8 @@ def entry_point():
          download_sequence=args.download, fix_missing_atoms=args.leavemissing,
          pqrff=args.pqrfmt, pqr_out=args.pqr,
          redo=args.redo, num_models=args.num, em_map=args.em_map,
-         em_contour=args.contour, split_hetatms=args.hetatms)
+         em_contour=args.contour, split_hetatms=args.hetatms,
+         no_modeller=args.nomodeller)
 
 
 if __name__ == "__main__":

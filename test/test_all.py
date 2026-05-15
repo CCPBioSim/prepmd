@@ -15,7 +15,7 @@ def run_sim(code, path, fmt="pdb", ):
     prep(code,
          str(path)+os.path.sep+code+"."+fmt,
          str(path)+os.path.sep+"testout"+os.path.sep+code+"_test",
-         download_format=fmt)
+         download_format=fmt, no_modeller=True)
 
 
 class TestPrep:
@@ -42,7 +42,8 @@ class TestPrep:
              str(path)+os.path.sep+code+"."+"pdb",
              str(path)+os.path.sep+"testout"+os.path.sep+code+"_test",
              download_format="pdb",
-             num_models=2, em_map="22281", em_contour=0.01)
+             num_models=2, em_map="22281", em_contour=0.01,
+             no_modeller=True)
         
     def test_pqr(self, tmp_path):
         path = str(tmp_path)
@@ -51,7 +52,8 @@ class TestPrep:
              str(path)+os.path.sep+code+"."+"pdb",
              str(path)+os.path.sep+"testout"+os.path.sep+code+"_test",
              download_format="pdb",
-             pqr_out=str(path)+os.path.sep+code+"."+"pqr",)
+             pqr_out=str(path)+os.path.sep+code+"."+"pqr",
+             no_modeller=True)
 
 # removed: 6TY4, 6XOV, 9I3U, 8RTO (too slow!)
 
@@ -125,7 +127,8 @@ class TestRun:
             ligands = [testpath+"ADP.sdf"],
             write_params=str(tmp_path)+sep+"params.json",
             thermo_out_file=str(tmp_path)+sep+"thermo.txt",
-            checkpoint_output=str(tmp_path)+sep+"checkpoint.dat")
+            checkpoint_output=str(tmp_path)+sep+"checkpoint.dat",
+            minimise=True, test_run=True)
 
 test_aln1 = os.path.dirname(file_path)+sep+"test_data"+sep+"6xov_prep.pdb"
 test_aln2 = os.path.dirname(file_path)+sep+"test_data"+sep+"6xou_prep.pdb"

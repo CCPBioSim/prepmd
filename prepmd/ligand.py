@@ -67,20 +67,14 @@ def load_universe(pdb_path):
         u = mda.Universe(pdb_path)
     return u
 
-
-# will be removed next update
-"""
-def count_hetatm_residues(pdb_path):
-    u = load_universe(pdb_path)
-    hetatms = u.select_atoms('not protein and not water')
-    hetatm_residues = hetatms.split("residue")
-    if len(hetatm_residues) == None:
-        return 0
-    return len(hetatm_residues)
-"""
+def pdb_back_to_mmcif(inpdb, outcif):
+        p = PDBParser()
+        struc = p.get_structure("", inpdb)
+        io = MMCIFIO()
+        io.set_structure(struc)
+        io.save(outcif)
 
 # setup ligand system
-
 
 def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
     """
@@ -123,7 +117,7 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
         struc = p.get_structure("", output_path+".pdb")
         io = MMCIFIO()
         io.set_structure(struc)
-        io.save(output_path)
+        io.save(output_path) # todo: replace w call to pdb_back_to_mmcif
 
     else:
         protein.write(output_path)
@@ -298,7 +292,8 @@ def create_ligand_system(
         negative_ion_smile="[Cl-]",
         desired_charge_elementary=0,
         ff="ff14sb_off_impropers_0.0.4.offxml",
-        ligand_ff="openff-2.2.0.offxml"):
+        ligand_ff="openff-2.2.0.offxml",
+        output_topology=None):
     """
     Set up an openmm system containing ligands using openff.
     Args:
@@ -361,6 +356,14 @@ def create_ligand_system(
     solvated_interchange.positions = packed_topology.get_positions()
     solvated_interchange.box = packed_topology.box_vectors
 
+    if output_topology and ".pdb" in output_topology:
+        solvated_interchange.to_pdb(output_topology)
+    if ".mmcif" in output_topology or ".mmCif" in output_topology:
+        print("WARNING: OpenMM can't write mmCif topologies. Writing a pdb "
+              "and converting it back to mmCif. Sorry!")
+        solvated_interchange.to_pdb(output_topology+".pdb")
+        pdb_back_to_mmcif(output_topology+".pdb", output_topology)
+
     openmm_system = solvated_interchange.to_openmm()
     openmm_topology = solvated_interchange.to_openmm_topology()
     openmm_positions = solvated_interchange.positions.to_openmm()
@@ -369,9 +372,3 @@ def create_ligand_system(
     # intergrator - variable langevin, tolerance: 0.0005 (or timestep < 0.001ps)
     # minimisation - tolerance = 2.5 kilojoule/(nanometer*mole)
     return openmm_system, openmm_topology, openmm_positions
-
-
-def get_ligand_centroid(pdb, traj):
-    universe = load_universe(pdb)
-    
-    ligand = u.select_atoms('not protein and not water')
