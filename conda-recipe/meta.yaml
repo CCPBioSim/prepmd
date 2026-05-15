@@ -6,6 +6,9 @@ source:
   #git_url: https://www.github.com/ccpbiosim/prepmd.git
   path: ..
 
+build:
+  noarch: python
+
 requirements:
   build:
     - python
