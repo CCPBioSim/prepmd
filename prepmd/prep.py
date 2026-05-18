@@ -42,10 +42,11 @@ parser.add_argument("-fmt", "--dlformat",
                     help="Structure format to download (only used when no structure file is "
                     "provided)",
                     default=None)
+parser.add_argument("-ph", "--ph", "pH to target when adding hydrogens")
 parser.add_argument("-q", "--quiet",
                     help="Do not print debug info", action="store_true")
 parser.add_argument("-e", "--fixstart",
-                    help="Fix pdb at the end of the process, not the start",
+                    help="Fix pdb at the start of the process, not the end",
                     action="store_true")
 parser.add_argument("-dl", "--download",
                     help="Download the sequence from UNIPROT instead of using the pdb or"
@@ -97,7 +98,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
          quiet=False, fix_after=True, download_sequence=False,
          fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff="AMBER",
          pqr_out=None, redo=False, num_models=1, em_map=None,em_contour=None,
-         split_hetatms=False, no_modeller=False):
+         split_hetatms=False, no_modeller=False, ph=7.0):
     """
     Prepare a PDB/MMCIF structure file for simulation.
     Args:
@@ -134,6 +135,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         em_contour: contour level for the EM map, a float.
         split_hetatms: if this is set to True, hetams will be written to sdf
         files, otherwise they will be removed.
+        ph - ph to target when adding hydrogens, a float
     Returns:
         nothing, but writes out a file to outmodel.
     """
@@ -202,6 +204,11 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
               "not. Multiple models will NOT be generated. If you need your"
               "output to match an EM map, you can still use another tool"
               "such as tempy-reff.")
+        
+    if pqr_out:
+        hydrogens = False
+    else:
+        hydrogens = True
 
     # create working dir
     if not os.path.isdir(workingdir):
@@ -262,7 +269,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         print("Fixing structure file...")
         #fix.fix(inmodel, inmodel, fix_missing_atoms=fix_missing_atoms,
         #        fix_missing_residues=modeller_shim)
-        fix.fix(inmodel, inmodel)
+        fix.fix(inmodel, inmodel, ph=ph, add_hydrogens=hydrogens)
         if modeller_shim and not split_hetatms:
             fix.remove_hetatms_unk(inmodel, inmodel)
 
@@ -316,18 +323,15 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
     
     if fix_after:
         print("Fixing PDB...")
-        #fix.fix(os.path.basename(outmodel),
-        #        os.path.basename(outmodel),
-        #        fix_missing_atoms=fix_missing_atoms,
-        #        fix_missing_residues=modeller_shim)
-        fix.fix(os.path.basename(outmodel), os.path.basename(outmodel))
+        fix.fix(os.path.basename(outmodel), os.path.basename(outmodel), ph=ph,
+                add_hydrogens=hydrogens)
         if modeller_shim and not split_hetatms:
             fix.remove_hetatms_unk(os.path.basename(outmodel),
                                    os.path.basename(outmodel))
     
     if pqr_out:
         print("Creating PQR...")
-        pqr.run_pdb2pqr(outmodel, os.path.basename(pqr_out), ff=pqrff)        
+        pqr.run_pdb2pqr(outmodel, os.path.basename(pqr_out), ff=pqrff, ph=ph)        
 
     # if the PQR is written then don't output a minimised structure file
     print("Simulating "+code)
@@ -395,7 +399,7 @@ def entry_point():
          pqrff=args.pqrfmt, pqr_out=args.pqr,
          redo=args.redo, num_models=args.num, em_map=args.em_map,
          em_contour=args.contour, split_hetatms=args.hetatms,
-         no_modeller=args.nomodeller)
+         no_modeller=args.nomodeller, ph=args.ph)
 
 
 if __name__ == "__main__":

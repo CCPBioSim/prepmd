@@ -9,7 +9,7 @@ Created on Mon Feb  9 14:04:25 2026
 import pdb2pqr
 import subprocess
 
-def run_pdb2pqr(infile, outfile, ff="AMBER"):
+def run_pdb2pqr(infile, outfile, ff="AMBER", ph=7):
     """
     Run PDB2PQR.
 
@@ -22,7 +22,7 @@ def run_pdb2pqr(infile, outfile, ff="AMBER"):
     """
     
     command = [infile, outfile, "--titration-state-method=propka",
-               "--with-ph=7", "--ff="+ff, "--ffout="+ff, "--drop-water"]
+               "--with-ph="+str(ph), "--ff="+ff, "--ffout="+ff, "--drop-water"]
     if pdb2pqr.__version__ < "3.7.0":
         print("WARNIONG: Old version of pdb2pqr detected, please install a "
         "version after 3.7.0. If you installed everything via conda, please  "

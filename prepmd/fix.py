@@ -56,6 +56,15 @@ def remove_hetatms_unk(pdb, out):
 
 
 def fix(pdb, out, remove_heterogens=True, add_hydrogens=True, ph=7.0):
+    """
+    Fix a pdb file with pdbfixer.
+    Arguments:
+        pdb: path to a pdb or mmcif file, a string
+        out: output file path, a string
+        remove_heterogens - if true, will remove heterogens
+        add_hydrogens - if true, will add hydrogens
+        ph - the ph to aim for when adding hydrogens, a float
+    """
     if ".cif" in pdb or ".mmcif" in pdb:
         fix_nonstandard_cif(pdb)
     fixer = PDBFixer(filename=pdb)
@@ -73,51 +82,6 @@ def fix(pdb, out, remove_heterogens=True, add_hydrogens=True, ph=7.0):
     else:
         PDBFile.writeFile(fixer.topology, fixer.positions, open(out, 'w'))
 
-# will be removed in the next build
-# it turns out a lot of these features are interdependent so if you set some
-# flags and not others, pdbfixer will just fail in weird ways
-"""
-def fix2(pdb, out, fix_nonstandard_residues=True, fix_missing_atoms=False,
-        add_missing_hydrogens=7.0, remove_heterogens=True,
-        fix_missing_hydrogens=True, fix_missing_residues=True):
-    
-    Use PDBFixer to fix a PDB (or mmCif) structure file.
-    Args:
-        pdb: input file path, a string
-        out: output file path, a string
-        fix_nonstandard_residues: whether to fix nonstandard residues, a bool
-        fix_misisng_atoms: whether to restore missing atoms, a bool
-        add_missing_hydrogens: desired pH, a float
-        remove_heterogens: whether to remove heterogens from the file, a bool
-        fix_missing_hydrogens: whether to add missing hydrogens, a bool
-        
-    if fix_missing_residues:
-        fix_missing_atoms = True
-    if ".cif" in pdb or ".mmcif" in pdb:
-        fix_nonstandard_cif(pdb)
-    fixer = PDBFixer(filename=pdb)
-    if fix_nonstandard_residues:
-        print("Fixing nonstandard residues...")
-        if fix_missing_residues:
-            print("Identifying missing residues...")
-            fixer.findMissingResidues()
-        fixer.findNonstandardResidues()
-        fixer.replaceNonstandardResidues()
-    if remove_heterogens:
-        print("Removing heterogens...")
-        fixer.removeHeterogens(False)
-    if fix_missing_atoms:
-        fixer.findMissingAtoms()
-        print("Adding missing atoms...")
-        fixer.addMissingAtoms()
-    if fix_missing_hydrogens:
-        print("Adding missing hydrogens...")
-        fixer.addMissingHydrogens(add_missing_hydrogens)  # pH
-    if ".cif" in pdb or ".mmcif" in pdb:
-        PDBxFile.writeFile(fixer.topology, fixer.positions, open(out, 'w'))
-    else:
-        PDBFile.writeFile(fixer.topology, fixer.positions, open(out, 'w'))
-"""
 
 def restore_metadata_pdb(pdb, fixed_pdb):
     """
