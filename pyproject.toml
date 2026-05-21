@@ -13,7 +13,7 @@ dependencies = [
    "mdanalysis",
    "rdkit",
    "openmmforcefields",
-   "openff-toolkit",
+#   "openff-toolkit",
 #  "requests",
 #  "openmm==8.2.0",
 #  "pdbfixer==1.11",
