@@ -22,6 +22,7 @@ from MDAnalysis.coordinates.memory import MemoryReader
 from openmm.app.modeller import Modeller
 from Bio.PDB import PDBParser, MMCIFIO
 import numpy as np
+import os
 
 """
 Okay, here's my full laundry list of complaints about rdkit
@@ -205,7 +206,8 @@ waters = {
 def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
                    positive_ion_smile="[Na+]", negative_ion_smile="[Cl-]",
                    desired_charge_elementary=0, water_ff="tip3p",
-                   solvent_smiles="O", ff="openff-2.2.0.offxml"):
+                   solvent_smiles="O", ff="openff-2.2.0.offxml",
+                   solvent_name="HOH"):
     """
     Solvate an openff system.
     Args:
@@ -223,6 +225,7 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
         water_ff: force field to use for the water. can be tip3p or tip4pew.
         solvent_smiles: smiles string for the solvent molecule.
         ff: force field to use, A string. Can be any openff force field.
+        solvent name: name of solvent molecule (for topology!) - a string
     Returns:
         openff topology and an interchange for just the waters.
     """
@@ -240,6 +243,7 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
     )
 
     water = Molecule.from_smiles(solvent_smiles)
+    water.name = solvent_name
     water.generate_conformers(n_conformers=1)
 
     if total_charge > desired_charge_elementary * unit.elementary_charge:
@@ -293,7 +297,9 @@ def create_ligand_system(
         desired_charge_elementary=0,
         ff="ff14sb_off_impropers_0.0.4.offxml",
         ligand_ff="openff-2.2.0.offxml",
-        output_topology=None):
+        output_topology=None,
+        solvent_name="HOH",
+        ligands_names=None):
     """
     Set up an openmm system containing ligands using openff.
     Args:
@@ -311,6 +317,9 @@ def create_ligand_system(
         it's the only one openff properly supports.
         ff: force field to use for the ligand, A string. Can be any small
         molecule force field supported by openff.
+        solvent_name - solvent name to appear in the topology, a string
+        ligands_names: names of ligands to be written to the topology. a list
+        of strings
     Returns:
         an openmm system, topology and positions object.
     """
@@ -328,10 +337,30 @@ def create_ligand_system(
         force_field=ff14sb,
         topology=protein.to_topology(),
     )
+    
+    if not ligands_names:
+        ligands_names = [None]*len(ligand_structures)
+        for ligand_fname in range(len(ligand_structures)):
+            try:
+                basename = os.path.basename(ligand_structures[ligand_fname])
+                resname = basename.split(".")[0]
+                if "_" in resname:
+                    resname = resname.split("_")[0]
+                ligands_names[ligand_fname] = resname
+            except:
+                pass
+        if None in ligands_names:
+            print("Warning: missing ligand name(s)! Will appear in topology "
+                  "as 'UNK'.")
 
     ligands = []
-    for ligand in ligand_structures:
-        ligands.append(Molecule.from_file(ligand))
+    for ligand, name in zip(ligand_structures, ligands_names):
+        current_ligand = Molecule.from_file(ligand)
+        if name:
+            current_ligand.name = name # ADD THIS
+            for atom in current_ligand.atoms:
+                atom.metadata["residue_name"] = name
+        ligands.append(current_ligand)
 
     ligand_topology = Topology.from_molecules(ligands)
 
@@ -350,7 +379,8 @@ def create_ligand_system(
                                                         positive_ion_smile=positive_ion_smile, negative_ion_smile=negative_ion_smile,
                                                         desired_charge_elementary=desired_charge_elementary, water_ff=water_ff,
                                                         solvent_smiles=solvent_smiles,
-                                                        ff=ligand_ff)
+                                                        ff=ligand_ff,
+                                                        solvent_name=solvent_name)
 
     solvated_interchange = interchange.combine(water_interchange)
     solvated_interchange.positions = packed_topology.get_positions()
@@ -358,11 +388,12 @@ def create_ligand_system(
 
     if output_topology and ".pdb" in output_topology:
         solvated_interchange.to_pdb(output_topology)
-    if ".mmcif" in output_topology or ".mmCif" in output_topology:
-        print("WARNING: OpenMM can't write mmCif topologies. Writing a pdb "
-              "and converting it back to mmCif. Sorry!")
-        solvated_interchange.to_pdb(output_topology+".pdb")
-        pdb_back_to_mmcif(output_topology+".pdb", output_topology)
+    if output_topology:
+        if ".mmcif" in output_topology or ".mmCif" in output_topology:
+            print("WARNING: OpenMM can't write mmCif topologies. Writing a pdb"
+                  " and converting it back to mmCif. Sorry!")
+            solvated_interchange.to_pdb(output_topology+".pdb")
+            pdb_back_to_mmcif(output_topology+".pdb", output_topology)
 
     openmm_system = solvated_interchange.to_openmm()
     openmm_topology = solvated_interchange.to_openmm_topology()

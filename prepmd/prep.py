@@ -42,7 +42,8 @@ parser.add_argument("-fmt", "--dlformat",
                     help="Structure format to download (only used when no structure file is "
                     "provided)",
                     default=None)
-parser.add_argument("-ph", "--ph", "pH to target when adding hydrogens")
+parser.add_argument("-ph", "--ph", type=float, help="pH to target when adding"
+                    " hydrogens", default=7.0)
 parser.add_argument("-q", "--quiet",
                     help="Do not print debug info", action="store_true")
 parser.add_argument("-e", "--fixstart",

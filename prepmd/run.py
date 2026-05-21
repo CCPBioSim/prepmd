@@ -17,6 +17,7 @@ import prepmd.metadynamics
 import MDAnalysis as mda
 from sys import stdout
 from prepmd import ligand
+from prepmd import analysis
 
 ff_lookup = {
     "amber14,tip3p": ['amber14-all.xml', 'amber14/tip3p.xml'],
@@ -83,7 +84,7 @@ def test_sim(pdb, no_output = False):
 def run(pdb,
         minimised_structure_out=None,
         traj_out=None,
-        max_minimise_iterations=100,
+        max_minimise_iterations=500,
         minimise_error = None, #default = 0.001,
         test_sim_steps=500,
         md_steps=None,
@@ -109,7 +110,8 @@ def run(pdb,
         metadynamics_morph = None, # filename of structure to morph to
         meta_rmsd_threshold_nm = 0.17,
         no_output = False,
-        ligands = []
+        ligands = [],
+        ligands_names = None
         ):
     """
     Run an MD simulation from a pdb/mmcif structure created with prepmd.
@@ -168,6 +170,9 @@ def run(pdb,
         checkpoint_output: name of checkpoint file to write to. A str.
         write_params: name of a file to write all the simulation params to. a
         str
+        ligands - list of ligand filenames. i think? in sdf format.
+        ligands_names - a list of strings of names of ligands. used to output a
+        ligand topology. Can run without this but ligands will show up as UNK
     """
 
     # don't look at this
@@ -216,11 +221,11 @@ def run(pdb,
     if not md_timestep and not ligands:
         md_timestep = 0.002*picoseconds
     if not md_timestep and ligands:
-        md_timestep = 0.0005*picoseconds
+        md_timestep = 0.00025*picoseconds
     if not minimise_error and not ligands:
         minimise_error = 0.001
     if not minimise_error and ligands:
-        minimise_error = 0.001*0.5
+        minimise_error = 0.001*0.25
     #print("Timestep: "+str(md_timestep))
     #print("Min_err: "+str(minimise_error))
 
@@ -278,7 +283,7 @@ def run(pdb,
                                                                   ff = ff,
                                                                   ligand_ff = ligand_ff,
                                                                   n_water = 5000,
-                                                                  output_topology=minimised_structure_out)
+                                                                  ligands_names=ligands_names)
         print("Note: topology written to "+str(minimised_structure_out)+" is "
               "not minimised. This is because OpenMM cannot write a correct "
               "topology for OpenFF ligands and solvents.")
@@ -456,7 +461,7 @@ def run(pdb,
     with open(write_params, "w") as file:
         file.write(locals_json)
 
-    if (minimise or test_run) and not no_output and ligands == []:
+    if (minimise or test_run) and not no_output:
         modeller_out = Modeller(simulation.topology, curr_state)
         if strip_solvent:
             modeller_out.deleteWater()
@@ -464,8 +469,6 @@ def run(pdb,
                          file=open(minimised_structure_out, "w"), keepIds=True)
         print("Wrote minimised structure to "+str(minimised_structure_out)+".")
     else:
-        if not no_output:
-            print("Skipped minimisation and test run.")
         if minimised_structure_out and not (minimise or test_run):
             raise ValueError("Minimised structure output was requested, but"
                              " minimisation and test run were both skipped.")
@@ -500,6 +503,9 @@ def run(pdb,
         if thermo_out_file:
             print("Wrote thermo info to "+thermo_out_file)
         print("Wrote checkpoint to "+checkpoint_output)
+        
+    if ligand and traj_out and minimised_structure_out:
+        analysis.get_ligand_centroid_traj(minimised_structure_out, traj_out)
         
     # metadynamics run
     
@@ -617,6 +623,8 @@ def entry_point():
                         help="Instead of running full MD, create a morph trajectory", default=None)
     parser.add_argument("-l", "--ligand", action="append",
                         help="Add a ligand from an sdf file. Call multiple times to add multiple ligands.", default=None)
+    parser.add_argument("-ln", "--ligname", action="append",
+                        help="Name the ligand. This is how ligands will be named in the topology file. Call once for each ligand.", default=None)
 
     args = parser.parse_args()
     minimise = not args.no_minimise
@@ -649,7 +657,8 @@ def entry_point():
         verbose=verbose,
         write_params=args.write_params,
         metadynamics_morph=args.metamorph,
-        ligands=args.ligand
+        ligands=args.ligand,
+        ligands_names=args.ligname
         )
 
 
