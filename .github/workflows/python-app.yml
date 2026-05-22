@@ -54,7 +54,9 @@ jobs:
 
       - name: install with pip
         shell: bash -l {0}
+        run: which pip
         run: pip install -e .
+        run: conda list
 
       - name: Run test suite
         shell: bash -l {0}

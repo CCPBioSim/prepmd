@@ -1,7 +1,6 @@
 # $ conda create --name <env> --file <this file>
 name: prep
 channels:
-  - defaults
   - salilab
   - conda-forge
 dependencies:
@@ -16,3 +15,4 @@ dependencies:
   - openmmtools
   - rdkit
   - openff-toolkit
+  - pip
