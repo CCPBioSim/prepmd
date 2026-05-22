@@ -56,7 +56,7 @@ jobs:
         shell: bash -l {0}
         run: |
             which pip
-            pip install -e
+            pip install -e .
             conda list
 
       - name: Run test suite
