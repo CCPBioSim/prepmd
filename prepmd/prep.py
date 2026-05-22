@@ -95,10 +95,10 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 
 def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
-         alignmentout="alignment_out.fasta", download_format="mmCif",
+         alignmentout="alignment_out.fasta", download_format=None,
          quiet=False, fix_after=True, download_sequence=False,
          fix_missing_atoms=True, write_metadata="prepmeta.json", pqrff="AMBER",
-         pqr_out=None, redo=False, num_models=1, em_map=None,em_contour=None,
+         pqr_out=None, redo=False, num_models=1, em_map=None, em_contour=None,
          split_hetatms=False, no_modeller=False, ph=7.0):
     """
     Prepare a PDB/MMCIF structure file for simulation.

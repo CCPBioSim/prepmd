@@ -505,7 +505,9 @@ def run(pdb,
         print("Wrote checkpoint to "+checkpoint_output)
         
     if ligand and traj_out and minimised_structure_out:
+        print("Running ligand analysis...")
         analysis.get_ligand_centroid_traj(minimised_structure_out, traj_out)
+        print("Done.")
         
     # metadynamics run
     

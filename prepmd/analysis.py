@@ -34,7 +34,10 @@ def get_ligand_centroid_traj(top, traj, ignore=["UNK"], output_trajs=True,
         if res in ignore:
             continue
         all_traj = get_selection_traj(u2, ligand)
-        centroid = np.mean(all_traj, axis=2)
+        if np.shape(all_traj)[1] > 1: # more than 1 atom
+            centroid = np.mean(all_traj, axis=2)
+        else:
+            centroid = all_traj[0] # only 1 atom
         res_no = 2
         while True:
             if res not in ligand_centroids:
@@ -43,6 +46,7 @@ def get_ligand_centroid_traj(top, traj, ignore=["UNK"], output_trajs=True,
             else:
                 if res+"_"+str(res_no) not in ligand_centroids:
                     ligand_centroids[res+"_"+str(res_no)] = centroid
+                    break
                 else:
                     res_no += 1
     if output_trajs:
