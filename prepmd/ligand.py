@@ -184,8 +184,8 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
         # i have to pass this stupid atommap rdMolAlign otherwise it won't
         # align the molecules because there's 'no substructure match' despite
         # them being literally the SAME MOLECULE
-        # rmsd = Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
-        # print("rmsd: "+str(rmsd))
+        rmsd = Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
+        #print("rmsd: "+str(rmsd))
 
         Chem.AllChem.MMFFOptimizeMolecule(mol)
         Chem.AllChem.UFFOptimizeMolecule(mol)
