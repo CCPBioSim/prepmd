@@ -17,6 +17,7 @@ documentation for details.
 
    Installation
    Quickstart
+   api/modules
    Prep-Structure
    Run-with-runmd
    Whats-next
