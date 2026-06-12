@@ -1,0 +1,30 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: prepmd
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Robert
+    family-names: Welch
+    email: robert.welch@stfc.ac.uk
+    affiliation: 'STFC, Scientific Computing'
+  - given-names: Harry
+    family-names: Swift
+    email: harry.swift@stfc.ac.uk
+    affiliation: 'STFC, Scientific Computing'
+    orcid: 'https://orcid.org/0009-0007-3323-753X'
+repository-code: 'https://github.com/CCPBioSim/prepmd'
+abstract: >-
+  A utility to automatically prepare structures from the PDB
+  for molecular dynamics simulation and perform
+  minimisations and simple MD simulations.
+keywords:
+  - PDB
+  - MD simulations
+license: AGPL-3.0
+version: 1.0.0
+date-released: '2026-04-14'
