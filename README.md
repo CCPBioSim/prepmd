@@ -1,6 +1,14 @@
 
 # prepmd
-[![prepmd CI](https://github.com/CCPBioSim/prepmd/actions/workflows/python-app.yml/badge.svg)](https://github.com/CCPBioSim/prepmd/actions/workflows/python-app.yml)
+
+
+| Category       | Badges |
+|----------------|--------|
+| **Build**      | [![prepmd CI](https://github.com/CCPBioSim/prepmd/actions/workflows/python-app.yml/badge.svg)](https://github.com/CCPBioSim/prepmd/actions/workflows/python-app.yml) |
+| **Documentation** |[![Docs - Status](https://app.readthedocs.org/projects/prepmd/badge/?version=latest)](https://prepmd.readthedocs.io/en/latest/?badge=latest) |
+| **Citation**      |  |
+| **Anaconda**       | [![Anaconda.org](https://anaconda.org/CCPBioSim/prepmd/badges/version.svg)](https://anaconda.org/CCPBioSim/prepmd/) [![Last Updated](https://anaconda.org/CCPBioSim/prepmd/badges/latest_release_date.svg)](https://anaconda.org/CCPBioSim/prepmd) [![Platforms](https://anaconda.org/CCPBioSim/prepmd/badges/platforms.svg)](https://anaconda.org/CCPBioSim/prepmd) [![License](https://anaconda.org/CCPBioSim/prepmd/badges/license.svg)](https://anaconda.org/CCPBioSim/prepmd) [![Downloads](https://anaconda.org/CCPBioSim/prepmd/badges/downloads.svg)](https://anaconda.org/CCPBioSim/prepmd)|
+| **Quality**    | [![Coverage Status](https://coveralls.io/repos/github/CCPBioSim/prepmd/badge.svg?branch=main)](https://coveralls.io/github/CCPBioSim/prepmd?branch=main) |
 
 A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations.
 

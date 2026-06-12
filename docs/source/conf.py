@@ -17,9 +17,16 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.extlinks",
     "nbsphinx",
     "sphinx_copybutton",
 ]
+
+autosummary_generate = True
+
+autodoc_member_order = "bysource"
+autodoc_typehints = "description"
 
 templates_path = ["_templates"]
 exclude_patterns = []
@@ -50,6 +57,13 @@ napoleon_numpy_docstring = True
 napoleon_use_param = False
 napoleon_use_ivar = True
 
+templates_path = ["_templates"]
+exclude_patterns = []
+
+
+
+# -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "furo"
