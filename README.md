@@ -23,9 +23,13 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * Create 'morph' trajectories with metadynamics
 * Coming soon: integration with other MD\EM workflows!
 
+## Example usage
+
+* Example usage here
+* For more detailed info, check the [readthedocs page](https://prepmd.readthedocs.io/en/latest).
 
 ## Licence
 AGPLv3
 
 ## Contributors
-`prepmd` is developed by Rob Welch. Thanks to Harry Swift for helping set up the CI. This project is funded by [DRI-IMB](https://driimb.org/). The repo is managed by CCPBioSim.
+`prepmd` is developed by Rob Welch. Thanks to Harry Swift for helping set up the CI, organising a lot of the repo stuff and managing the CCPBioSim conda channel. This project is funded by [DRI-IMB](https://driimb.org/) and the repo is managed by CCPBioSim.

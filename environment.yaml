@@ -16,3 +16,4 @@ dependencies:
   - rdkit
   - openff-toolkit
   - pip
+  - ambertools
