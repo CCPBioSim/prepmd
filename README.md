@@ -24,8 +24,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * Coming soon: integration with other MD\EM workflows!
 
 ## Example usage
-
-* Example usage here
+<img width="768" height="432" alt="demo" src="https://github.com/user-attachments/assets/f7785a4d-ef54-428d-b193-1cb6413bc21e" />
 * For more detailed info, check the [readthedocs page](https://prepmd.readthedocs.io/en/latest).
 
 ## Licence
