@@ -21,6 +21,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "nbsphinx",
     "sphinx_copybutton",
+    "myst_parser",
 ]
 
 autosummary_generate = True

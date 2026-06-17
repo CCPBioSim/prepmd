@@ -6,9 +6,7 @@
 prepmd documentation
 ====================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations. Source: https://github.com/CCPBioSim/prepmd
 
 
 .. toctree::
@@ -17,9 +15,9 @@ documentation for details.
 
    Installation
    Quickstart
-   api/modules
    Prep-Structure
    Run-with-runmd
    Whats-next
    Python-API
    Developer-Notes
+   api/modules
