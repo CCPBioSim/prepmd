@@ -35,7 +35,8 @@ docs = [
     "sphinxcontrib-contentui>=0.2,<1.0",
     "sphinxcontrib-details-directive>=0.1,<1.0",
     "furo>=2025.0,<2026.0",
-    "markupsafe>=3.0,<4.0"
+    "markupsafe>=3.0,<4.0",
+    "myst-parser"
 ]
 
 [project.scripts]
