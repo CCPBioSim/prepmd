@@ -1,5 +1,6 @@
-
-# prepmd
+<p align="center" width="100%">
+  <img src="https://raw.githubusercontent.com/CCPBioSim/branding/refs/heads/main/logos/prepmd/prepmd-logo-black-text.svg" width="256px" >
+</div>
 
 
 | Category       | Badges |
@@ -25,10 +26,11 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 ## Example usage
 <img width="768" height="432" alt="demo" src="https://github.com/user-attachments/assets/f7785a4d-ef54-428d-b193-1cb6413bc21e" />
-* For more detailed info, check the [readthedocs page](https://prepmd.readthedocs.io/en/latest).
+
+For more detailed info, check the [readthedocs page](https://prepmd.readthedocs.io/en/latest).
 
 ## Licence
 AGPLv3
 
 ## Contributors
-`prepmd` is developed by Rob Welch. Thanks to Harry Swift for helping set up the CI, organising a lot of the repo stuff and managing the CCPBioSim conda channel. This project is funded by [DRI-IMB](https://driimb.org/) and the repo is managed by CCPBioSim.
+`prepmd` is developed by Rob Welch. Thanks to Harry Swift for helping set up the CI, organising a lot of the repo stuff and managing the CCPBioSim conda channel. The logo was created by Jas Kalayan. This project is funded by [DRI-IMB](https://driimb.org/) and the repo is managed by CCPBioSim.
