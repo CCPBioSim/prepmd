@@ -77,6 +77,23 @@ def pdb_back_to_mmcif(inpdb, outcif):
 
 # setup ligand system
 
+def get_size(atoms):
+    if type(atoms) != np.ndarray:
+        atommap = []
+        conf = atoms.GetConformer()
+        for atom in atoms.GetAtoms():
+            idx = atom.GetIdx()
+            pos = conf.GetAtomPosition(idx)
+            atommap.append(pos)
+        atoms = np.array(atommap)
+    maxima = []
+    minima = []
+    for i in range(2):
+        maxima.append(max(atoms[:,i]))
+        minima.append(min(atoms[:,i]))
+    size = np.array(maxima) - np.array(minima)
+    return size
+
 def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
     """
     Extract ligands from a structure file (pdb or mmcif) and write out a new,
@@ -102,7 +119,19 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
         print("Extracting hetatms/ligands...")
 
     ligands = ligand.split("residue")
-
+    
+    # aaaaa
+    # this is a horrible hack because mdanalysis has some kind of bug with
+    # the global state whereby if you run .convert_to more than once it writes
+    # out junk data for every structure after the first
+    ligand_files = []
+    for ligand in range(len(ligands)):
+        name = "h"+str(ligand)+".pdb"
+        ligands[ligand].write(name)
+        ligand_files.append(name)
+    
+    #ligands = [ligands[4]]
+    
     if not new_pdb_output:
         output_path = pdb_path
     else:
@@ -125,20 +154,38 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
 
     ligand_filenames = []
     ligands_written = {}
-    for ligand in ligands:
+    for ligand, ligand_file in zip(ligands, ligand_files):
         resname = "".join(list(set(ligand.resnames)))
         if resname in ligands_written.keys():
             ligands_written[resname] += 1
             resname += "_"+str(ligands_written[resname])
         else:
             ligands_written[resname] = 1
-        mol = ligand.convert_to('RDKIT', inferrer=None)
+        fname = save_ligand(ligand_file, resname)
+        ligand_filenames.append(fname)
+    return ligand_filenames
 
-        # need to create a coordmap or rdkit rotates and translates the ligand
-        # for absolutely no reason. luckily getting the positions of atoms in
-        # rdkit is very easy. just make a conformer object and then iterate
-        # over it to get an object that has x y and z as member variables
-        # someone should maybe tell the rdkit developers about arrays
+
+def TEMP_write(mol, fname):
+    writer = Chem.SDWriter(fname)
+    writer.write(mol)
+    writer.close()
+
+
+def save_ligand(ligand, resname, neutralise_radicals = True):
+    
+    if type(ligand) == str:
+        u = load_universe(ligand)
+        ligand = u.atoms
+
+    mol = ligand.convert_to('RDKIT', NoImplicit=False)
+    #TEMP_write(mol, resname+"_1.sdf")
+    # need to create a coordmap or rdkit rotates and translates the ligand
+    # for absolutely no reason. luckily getting the positions of atoms in
+    # rdkit is very easy. just make a conformer object and then iterate
+    # over it to get an object that has x y and z as member variables
+    # someone should maybe tell the rdkit developers about arrays
+    def get_coord_atommap(mol):
         coordmap = {}
         atommap = []
         conf = mol.GetConformer()
@@ -147,54 +194,69 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
             pos = conf.GetAtomPosition(idx)
             coordmap[idx] = pos
             atommap.append([idx, idx])
-
-        # do not touch this or it WILL break
-        # the molecule does not contain any hydrogens but in order to add
-        # hydrogens you have to first run the removehs function, if you don't
-        # do this it won't add any hydrogens but it definitely won't tell you
-        # that anything is wrong
-        try:
-            mol = Chem.RemoveHs(mol)
-            mol = Chem.AddHs(mol, addCoords=True)
-        except Exception as e:
-            print("WARNING: Couldn't extract "+resname+" ("+str(e)+").")
-            continue
-
-        original_mol = copy.copy(mol)
-
-        # remove radicals
-        radicals_neutralised = 0
-        if neutralise_radicals:
-            for a in mol.GetAtoms():
-                rad = a.GetNumRadicalElectrons()
-                if rad:
-                    a.SetNumExplicitHs(rad)
-                    a.SetNumRadicalElectrons(0)
-                    radicals_neutralised += rad
-
+        return coordmap, atommap
+    coordmap, atommap = get_coord_atommap(mol)
+    
+    # do not touch this or it WILL break
+    # the molecule does not contain any hydrogens but in order to add
+    # hydrogens you have to first run the removehs function, if you don't
+    # do this it won't add any hydrogens but it definitely won't tell you
+    # that anything is wrong
+    try:
+        mol = Chem.RemoveHs(mol)
         mol = Chem.AddHs(mol, addCoords=True)
+    except Exception as e:
+        print("WARNING: Couldn't extract "+resname+" ("+str(e)+").")
+        return ""
 
-        # if you don't call embedmolecule here then the molecule will have
-        # exactly one atom in completely the wrong place that will cause the
-        # simulation to immediately detonate. however, if you call
-        # embedmolecule without a coordmap it will rotate and translate the
-        # ligand. it does this out of spite and hatred for molecular modellers
-        Chem.AllChem.EmbedMolecule(mol, coordMap=coordmap)
 
-        # i have to pass this stupid atommap rdMolAlign otherwise it won't
-        # align the molecules because there's 'no substructure match' despite
-        # them being literally the SAME MOLECULE
-        rmsd = Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
-        #print("rmsd: "+str(rmsd))
+    #TEMP_write(mol, resname+"_2.sdf")
+    original_mol = copy.copy(mol)
 
-        Chem.AllChem.MMFFOptimizeMolecule(mol)
-        Chem.AllChem.UFFOptimizeMolecule(mol)
+    # remove radicals
+    radicals_neutralised = 0
+    if neutralise_radicals:
+        for a in mol.GetAtoms():
+            rad = a.GetNumRadicalElectrons()
+            if rad:
+                a.SetNumExplicitHs(rad)
+                a.SetNumRadicalElectrons(0)
+                radicals_neutralised += rad
 
-        writer = Chem.SDWriter(resname+".sdf")
-        writer.write(mol)
-        writer.close()
-        ligand_filenames.append(resname+".sdf")
-    return ligand_filenames
+    #TEMP_write(mol, resname+"_3.sdf")
+    mol = Chem.AddHs(mol, addCoords=True)
+    #TEMP_write(mol, resname+"_4.sdf")
+
+    # if you don't call embedmolecule here then the molecule will have
+    # exactly one atom in completely the wrong place that will cause the
+    # simulation to immediately detonate. however, if you call
+    # embedmolecule without a coordmap it will rotate and translate the
+    # ligand. it does this out of spite and hatred for molecular modellers
+    #coordmap, atommap = get_coord_atommap(mol)
+    
+    unembedded_mol = copy.copy(mol)
+    Chem.AllChem.EmbedMolecule(mol, coordMap=coordmap)
+    if np.mean(get_size(mol)) < np.mean(get_size(unembedded_mol))*0.75:
+    #    mol = unembedded_mol
+        print("Warning: embedding "+resname+" with rdkit broke it.")
+    #TEMP_write(mol, resname+"_5.sdf")
+    # i have to pass this stupid atommap rdMolAlign otherwise it won't
+    # align the molecules because there's 'no substructure match' despite
+    # them being literally the SAME MOLECULE
+    rmsd = Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
+    #print("rmsd: "+str(rmsd))
+    #TEMP_write(mol, resname+"_6.sdf")
+
+    Chem.AllChem.MMFFOptimizeMolecule(mol)
+    Chem.AllChem.UFFOptimizeMolecule(mol)
+    
+    #TEMP_write(mol, resname+"_7.sdf")
+
+    writer = Chem.SDWriter(resname+".sdf")
+    writer.write(mol)
+    writer.close()
+    print("---")
+    return resname+".sdf"
 
 
 waters = {
