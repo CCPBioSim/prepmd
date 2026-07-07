@@ -27,7 +27,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * Create 'morph' trajectories with metadynamics
 
 ## Geting Started
-* Install using conda: `conda install -c CCPBioSim prepmd`
+* Install using conda: `conda install -c CCPBioSim -c salilab prepmd`
 * Run it: `prepmd 6xov 6xov_processed.cif`
 * [More documentaqtion (including more install info) on readthedocs](https://prepmd.readthedocs.io/en/latest).
 
