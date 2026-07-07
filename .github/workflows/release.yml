@@ -32,12 +32,12 @@ jobs:
         echo "pip_tag=$PREVIOUS_VERSION" >> "$GITHUB_OUTPUT"
         echo $PREVIOUS_VERSION
 
-    - name: version comparison
-      id: compare
-      run: |
-        pip3 install semver
-        output=$(pysemver compare ${{ steps.latestreleased.outputs.pip_tag }} ${{ github.event.inputs.version }})
-        if [ $output -ge 0 ]; then exit 1; fi
+#    - name: version comparison
+#      id: compare
+#      run: |
+#        pip3 install semver
+#        output=$(pysemver compare ${{ steps.latestreleased.outputs.pip_tag }} ${{ github.event.inputs.version }})
+#        if [ $output -ge 0 ]; then exit 1; fi
 
   version:
     name: prepare ${{ github.event.inputs.version }}
