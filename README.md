@@ -13,6 +13,9 @@
 
 A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations.
 
+## Example usage
+<img width="768" height="432" alt="demo" src="https://github.com/user-attachments/assets/f7785a4d-ef54-428d-b193-1cb6413bc21e" />
+
 ## Features
 * Automatically download structures, sequences and metadata from the PDB, PDB-REDO, EMDB and UNIPROT
 * Automatically fill missing loops with MODELLER or pdbfixer
@@ -22,12 +25,11 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * Automatically extract and prepare hetatms\ligands for simulation with rdkit
 * Easily run simple MD simulations for testing, validation and minimisation with OpenMM
 * Create 'morph' trajectories with metadynamics
-* Coming soon: integration with other MD\EM workflows!
 
-## Example usage
-<img width="768" height="432" alt="demo" src="https://github.com/user-attachments/assets/f7785a4d-ef54-428d-b193-1cb6413bc21e" />
-
-For more detailed info, check the [readthedocs page](https://prepmd.readthedocs.io/en/latest).
+## Geting Started
+* Install using conda: `conda install -c CCPBioSim prepmd`
+* Run it: `prepmd 6xov 6xov_processed.cif`
+* [More documentaqtion (including more install info) on readthedocs](https://prepmd.readthedocs.io/en/latest).
 
 ## Licence
 AGPLv3
