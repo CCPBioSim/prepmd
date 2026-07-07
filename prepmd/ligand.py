@@ -248,7 +248,7 @@ def save_ligand(ligand, resname, neutralise_radicals = True):
     #TEMP_write(mol, resname+"_6.sdf")
 
     Chem.AllChem.MMFFOptimizeMolecule(mol)
-    Chem.AllChem.UFFOptimizeMolecule(mol)
+    #Chem.AllChem.UFFOptimizeMolecule(mol)
     
     #TEMP_write(mol, resname+"_7.sdf")
 

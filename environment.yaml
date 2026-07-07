@@ -4,7 +4,7 @@ channels:
   - salilab
   - conda-forge
 dependencies:
-  - python
+  - python=3.13
   - requests
   - openmm
   - pdbfixer

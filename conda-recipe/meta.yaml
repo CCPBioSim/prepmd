@@ -1,6 +1,6 @@
 package:
   name: prepmd
-  version: 1.0
+  version: 1.0.1
 
 source:
   #git_url: https://www.github.com/ccpbiosim/prepmd.git
@@ -15,7 +15,7 @@ requirements:
     - pip
     - setuptools
   run:
-    - python
+    - python=3.13
     - requests
     - openmm
     - pdbfixer
