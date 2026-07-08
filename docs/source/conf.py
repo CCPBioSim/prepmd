@@ -9,6 +9,8 @@ author = "CCPBioSim"
 version = "1.0.0"
 release = "1.0.0"
 
+html_logo = "https://github.com/CCPBioSim/branding/raw/refs/heads/main/logos/prepmd/prepmd-logo-black-text.svg"
+
 # -- General configuration ---------------------------------------------------
 
 extensions = [
