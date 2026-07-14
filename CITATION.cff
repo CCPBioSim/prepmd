@@ -17,6 +17,11 @@ authors:
     email: harry.swift@stfc.ac.uk
     affiliation: 'STFC, Scientific Computing'
     orcid: 'https://orcid.org/0009-0007-3323-753X'
+  - given-names: Jas
+    family-names: Kalayan
+    email: jas.kalayan@stfc.ac.uk
+    affiliation: 'STFC, Scientific Computing'
+    orcid: 'https://orcid.org/0000-0002-6833-1864'
 repository-code: 'https://github.com/CCPBioSim/prepmd'
 abstract: >-
   A utility to automatically prepare structures from the PDB
