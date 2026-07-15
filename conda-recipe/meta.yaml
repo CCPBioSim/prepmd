@@ -1,39 +1,62 @@
+{% set name = "prepmd" %}
+{% set version = "0.0.0" %}
+
 package:
-  name: prepmd
-  version: 1.0.1
+  name: {{ name }}
+  version: {{ version }}
 
 source:
-  #git_url: https://www.github.com/ccpbiosim/prepmd.git
   path: ..
 
 build:
   noarch: python
+  script: |
+    {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  entry_points:
+    - prepmd=prepmd.prep:entry_point
+    - runmd=prepmd.run:entry_point
+    - prep-license=prepmd.add_modeller_license:entry_point
 
 requirements:
-  build:
-    - python
+  host:
+    - python >=3.13,<3.14
     - pip
-    - setuptools
+    - flit-core >=3.4,<4
+
   run:
-    - python=3.13
+    - python >=3.13,<3.14
     - requests
     - openmm
     - pdbfixer
-    - modeller
     - biopython
-    - mdanalysis
-    - openmmtools
-    - rdkit
-    - openff-toolkit
     - pdb2pqr
+    - mdanalysis
+    - rdkit
+    - openmmforcefields
+    - openff-toolkit
+
 test:
-#  commands:
-#    - prep-license SECRET-MODELLER-LICENSE-KEY
   imports:
     - prepmd
 
+  commands:
+    - python -c "import prepmd; print(prepmd.__version__)"
+    - prepmd --help
+    - runmd --help
+
 about:
-  summary: A utility to automatically prepare structures from the PDB for molecular dynamics simulation
-  dev_url: https://github.com/CCPBioSim/prepmd
-  license: GNU Affero General Public License v3.0
+  home: https://github.com/CCPBioSim/prepmd
+  license: AGPL-3.0-or-later
+  license_family: AGPL
   license_file: LICENSE
+  license_url: https://github.com/CCPBioSim/prepmd/blob/main/LICENSE
+  summary: Automatically prepare PDB and mmCIF structures for molecular dynamics simulations.
+  description: >-
+    prepmd is a Python utility for automatically preparing PDB and mmCIF
+    structures for molecular dynamics simulations. It provides tools for
+    preparing, repairing, and processing molecular structures using OpenMM,
+    PDBFixer, Biopython, MDAnalysis, RDKit, PDB2PQR, OpenMMForceFields,
+    and the OpenFF Toolkit.
+  dev_url: https://github.com/CCPBioSim/prepmd
+  doc_url: https://prepmd.readthedocs.io/en/latest/
+  doc_source_url: https://github.com/CCPBioSim/prepmd/blob/main/README.md
