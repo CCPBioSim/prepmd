@@ -8,4 +8,4 @@ PDBFixer, Biopython, MDAnalysis, RDKit, PDB2PQR, OpenMMForceFields,
 and the OpenFF Toolkit.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
