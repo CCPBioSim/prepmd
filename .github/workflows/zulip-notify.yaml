@@ -1,5 +1,5 @@
 name: Notify Zulip
- 
+
 on:
   release:
     types: [released]
