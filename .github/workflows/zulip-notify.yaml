@@ -29,5 +29,5 @@ jobs:
             -u "${ZULIP_BOT_EMAIL}:${ZULIP_BOT_API_KEY}" \
             --data-urlencode type=stream \
             --data-urlencode "to=announcements" \
-            --data-urlencode "topic=releases" \
+            --data-urlencode "topic=software releases" \
             --data-urlencode "content=${CONTENT}"
