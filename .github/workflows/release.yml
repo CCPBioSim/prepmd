@@ -121,11 +121,48 @@ jobs:
     steps:
 
       - name: create release
+        id: create_release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           name: v${{ github.event.inputs.version }}
           generate_release_notes: true
           tag_name: ${{ github.event.inputs.version }}
+
+      - name: fetch generated changelog
+        id: changelog
+        if: steps.create_release.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # generate_release_notes builds the changelog server-side, so pull
+          # it back down here rather than trying to reconstruct it locally.
+          gh release view "${{ github.event.inputs.version }}" --json body -q .body > changelog.txt
+
+      - name: notify Zulip of release
+        if: steps.create_release.outcome == 'success'
+        continue-on-error: true
+        env:
+          ZULIP_BOT_EMAIL: ${{ secrets.ZULIP_BOT_EMAIL }}
+          ZULIP_BOT_API_KEY: ${{ secrets.ZULIP_BOT_API_KEY }}
+          ZULIP_SITE: ${{ secrets.ZULIP_SITE }}
+          REPO: ${{ github.event.repository.name }}
+          TAG: v${{ github.event.inputs.version }}
+          RELEASE_URL: ${{ steps.create_release.outputs.url }}
+        run: |
+          CONTENT=$(cat <<EOF
+          **${REPO}** [${TAG}](${RELEASE_URL}) has been released 🎉
+
+          $(cat changelog.txt)
+          EOF
+          )
+
+          curl -sSf "${ZULIP_SITE}/api/v1/messages" \
+            -u "${ZULIP_BOT_EMAIL}:${ZULIP_BOT_API_KEY}" \
+            --data-urlencode type=stream \
+            --data-urlencode "to=announcement" \
+            --data-urlencode "topic=software releases" \
+            --data-urlencode "content=${CONTENT}"
 
   conda:
     name: publish conda to anaconda.org
