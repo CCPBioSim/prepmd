@@ -160,7 +160,7 @@ jobs:
           curl -sSf "${ZULIP_SITE}/api/v1/messages" \
             -u "${ZULIP_BOT_EMAIL}:${ZULIP_BOT_API_KEY}" \
             --data-urlencode type=stream \
-            --data-urlencode "to=announcement" \
+            --data-urlencode "to=announcements" \
             --data-urlencode "topic=software releases" \
             --data-urlencode "content=${CONTENT}"
 
