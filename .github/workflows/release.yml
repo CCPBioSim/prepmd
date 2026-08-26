@@ -137,7 +137,7 @@ jobs:
         run: |
           # generate_release_notes builds the changelog server-side, so pull
           # it back down here rather than trying to reconstruct it locally.
-          gh release view "${{ github.event.inputs.version }}" --json body -q .body > changelog.txt
+          gh release view "${{ github.event.inputs.version }}" --repo "${{ github.repository }}" --json body -q .body > changelog.txt
 
       - name: notify Zulip of release
         if: steps.create_release.outcome == 'success'
