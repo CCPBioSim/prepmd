@@ -70,8 +70,8 @@ exclude_patterns = []
 html_theme = "furo"
 
 html_theme_options = {
-    "light_logo": "logos/prepmd-logo-black-text.svg",
-    "dark_logo": "logos/prepmd-logo-white-text.svg",
+    "light_logo": "logos/prepmd-logo-black.svg",
+    "dark_logo": "logos/prepmd-logo-white.svg",
 }
 
 html_static_path = ["_static"]
