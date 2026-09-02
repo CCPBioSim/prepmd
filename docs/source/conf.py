@@ -6,8 +6,8 @@ project = "prepmd"
 copyright = "2026, CCPBioSim"
 author = "CCPBioSim"
 
-version = "1.0.0"
-release = "1.0.0"
+version = ""
+release = ""
 
 
 # -- General configuration ---------------------------------------------------
