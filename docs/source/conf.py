@@ -9,7 +9,6 @@ author = "CCPBioSim"
 version = "1.0.0"
 release = "1.0.0"
 
-html_logo = "https://github.com/CCPBioSim/branding/raw/refs/heads/main/logos/prepmd/prepmd-logo-black-text.svg"
 
 # -- General configuration ---------------------------------------------------
 
@@ -67,7 +66,12 @@ exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-# -- Options for HTML output -------------------------------------------------
 
 html_theme = "furo"
+
+html_theme_options = {
+    "light_logo": "logos/prepmd-logo-black-text.svg",
+    "dark_logo": "logos/prepmd-logo-white-text.svg",
+}
+
 html_static_path = ["_static"]
