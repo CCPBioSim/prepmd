@@ -17,6 +17,7 @@ dependencies = [
    "mdanalysis",
    "rdkit",
    "openmmforcefields",
+   "pdbe-mmcif-validator",
 #   "openff-toolkit",
 #  "requests",
 #  "openmm==8.2.0",

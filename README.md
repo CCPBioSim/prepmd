@@ -28,7 +28,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 
 ## Geting Started
 * Install using conda: `conda install -c CCPBioSim -c salilab prepmd`
-* Run it: `prepmd 6xov 6xov_processed.cif`
+* Run it: `prepmd 6xov 6xov_processed.pdb`
 * [More documentaqtion (including more install info) on readthedocs](https://prepmd.readthedocs.io/en/latest).
 
 ## Licence

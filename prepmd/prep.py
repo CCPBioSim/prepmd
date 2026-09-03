@@ -180,7 +180,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         pass
     else:
         raise IOError("Inputs and outputs are in different formats! Please "
-                      "use only one format (ideally cif)")
+                      "use only one format!)")
 
     if pqr_out and download_format == "mmCif":
         raise IOError("PQR generation requires the PDB format to be used. "

@@ -96,6 +96,39 @@ def fasta(fasta_name, include_metadata=False):
         raise IOError("Couldn't read FASTA data in "+fasta_name)
     return out
 
+
+def validate_alignment(fastafile):
+    fix = False
+    with open(fastafile, "r") as file:
+        lines = file.readlines()
+    comment = []
+    header = []
+    sequence = []
+    if "\n" in sequence:
+        sequence.remove("\n")
+    for line in lines:
+        if "P1;" in line:
+            header.append(line)
+        elif ":" in line or ";" in line:
+            comment.append(line)
+        else:
+            sequence.append(line)
+    for item in range(len(comment)):
+        #print(comment[item]+", "+str(">" in comment[item]))
+        if ">" in comment[item]:
+            comment[item] = comment[item].replace(">", "")
+            fix = True
+            #print(comment)
+    if len(comment) != 1:
+        fix = True
+        comment = [ "".join(comment).replace("\n", "")+"\n" ]
+    if fix:
+        with open(fastafile, "w") as file:
+            file.writelines(header+comment+sequence)
+        print("Fixed incorrect formatting of "+fastafile+".")
+    return
+
+
 def get_alignment_info(alignmentout):
     """
     For a FASTA-formatted alignment file, get the number of residues filled,
@@ -149,6 +182,10 @@ def get_alignment_info(alignmentout):
 
     total_residues_filled = missing_residues - filled_residues
     total_gaps_filled = missing_gaps - filled_gaps
+    if total_residues_filled  < 0:
+        print("WARNING: filled structure contains fewer residues than the "
+              "original. This is normally a sign that something has gone "
+              "wrong.")
     return total_residues_filled, total_gaps_filled, filled_residues, filled_gaps, max_gap
 
 
@@ -212,6 +249,9 @@ def get_best_pdb(directory, exts=["pdb", "cif", "mmcif", "mmCif"],
         for pdb in pdbs:
             em_scores[pdb] = point_cloud.score_pdb_map(pdb, em_map, 
                                                        em_contour_level)
+    if len(similarities) == 0:
+        raise ValueError("MODELLER could not optimise missing "
+                         "loops. Check the output folder for more info.")
     max_sim = max(similarities.values())
     if max_sim >= 97:
         print("Similiarity: "+str(max_sim)+"%.")
@@ -313,12 +353,21 @@ def fix_missing_residues(code, fastafile, alignmentout, inmodel, outmodel,
         env.io.hetatm = True
         print("Aligning sequences...")
         aln = modeller.Alignment(env)
+        validate_alignment(code+".seq")
         aln.append(file=code+".seq", align_codes=code)
-        aln.append(file=code+"_fill.seq", align_codes=code+"_fill")
+        try:
+            aln.append(file=code+"_fill.seq", align_codes=code+"_fill")
+        except OSError:
+            raise OSError("MODELLER could not read the structure file. If "
+                          "you're using cif, try switching to PDB, as that "
+                          "sometimes helps.")
         aln.salign()
         print("Succesfully aligned.", end="")
         aln.write(file=alignmentout)
         print(" Wrote alignment to "+alignmentout)
+        
+        # TODO: here, open the alignment file and verify that the header has 10 : in it
+        # also check that each > begins a line, and if there are more than two then get rid of any 
 
     env.io.atom_files_directory = pdb_dirs
     print("Modelling missing loops...")

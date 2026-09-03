@@ -58,6 +58,7 @@ jobs:
           which pip
           pip install -e .
           pip install pytest-cov
+          pip install pdbe-mmcif-validator
           conda list
 
       - name: Run test suite with coverage

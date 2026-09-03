@@ -17,3 +17,5 @@ dependencies:
   - openff-toolkit
   - pip
   - ambertools
+  - pip:
+    - pdbe-mmcif-validator
