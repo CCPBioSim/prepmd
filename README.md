@@ -1,7 +1,5 @@
-<p align="center" width="100%">
-  <img src="https://raw.githubusercontent.com/CCPBioSim/branding/refs/heads/main/logos/prepmd/prepmd-logo-black-text.svg" width="256px" >
-</div>
-
+prepmd
+==============================
 
 | Category       | Badges |
 |----------------|--------|
@@ -11,14 +9,16 @@
 | **Anaconda**       | [![Anaconda.org](https://anaconda.org/CCPBioSim/prepmd/badges/version.svg)](https://anaconda.org/CCPBioSim/prepmd/) [![Last Updated](https://anaconda.org/CCPBioSim/prepmd/badges/latest_release_date.svg)](https://anaconda.org/CCPBioSim/prepmd) [![Platforms](https://anaconda.org/CCPBioSim/prepmd/badges/platforms.svg)](https://anaconda.org/CCPBioSim/prepmd) [![License](https://anaconda.org/CCPBioSim/prepmd/badges/license.svg)](https://anaconda.org/CCPBioSim/prepmd) [![Downloads](https://anaconda.org/CCPBioSim/prepmd/badges/downloads.svg)](https://anaconda.org/CCPBioSim/prepmd)|
 | **Quality**    | [![Coverage Status](https://coveralls.io/repos/github/CCPBioSim/prepmd/badge.svg?branch=main)](https://coveralls.io/github/CCPBioSim/prepmd?branch=main) |
 
+
+<p align="center">
+    <img src="docs/source/_static/logos/prepmd-logo-white-text.svg#gh-dark-mode-only" alt="prepmd logo" width="300"/>
+    <img src="docs/source/_static/logos/prepmd-logo-black-text.svg#gh-light-mode-only" alt="prepmd logo" width="300"/>
+</p>
+
 A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations.
 
 ## Example usage
-<p align="center">
-    <img src="docs/_static/logos/prepmd-logo-white-text.svg#gh-dark-mode-only" alt="prepmd logo" width="300"/>
-    <img src="docs/_static/logos/prepmd-logo-black-text.svg#gh-light-mode-only" alt="prepmd logo" width="300"/>
-</p>
-
+<img width="768" height="432" alt="demo" src="https://github.com/user-attachments/assets/f7785a4d-ef54-428d-b193-1cb6413bc21e" />
 
 ## Features
 * Automatically download structures, sequences and metadata from the PDB, PDB-REDO, EMDB and UNIPROT
