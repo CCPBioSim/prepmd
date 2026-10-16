@@ -223,7 +223,7 @@ jobs:
         with:
           token: ${{ secrets.BUILD_TOKEN }}
           repository: ccpbiosim/ccpbiosim.github.io
-          event-type: workshops
+          event-type: software
           client-payload: ${{ steps.payload.outputs.json }}
 
   conda:
