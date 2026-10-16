@@ -1,6 +1,7 @@
-shortdesc: ""
-longdesc: ""
-category: "data-tools"
-image: ""
-pypi: true
+shortdesc: "Automatically prepare structures from the PDB for molecular dynamics simulation."
+longdesc: "A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations."
+category: "scientific"
+image: "prepmd-logo.svg"
+pypi: false
 conda: true
+ghcr: false
