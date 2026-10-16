@@ -1,0 +1,10 @@
+name: ""
+shortdesc: ""
+longdesc: ""
+authors:
+category: "data-tools"
+image: ""
+github: ""
+docs: ""
+pypi: true
+conda: true
