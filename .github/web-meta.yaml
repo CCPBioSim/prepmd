@@ -2,7 +2,5 @@ shortdesc: ""
 longdesc: ""
 category: "data-tools"
 image: ""
-github: ""
-docs: ""
 pypi: true
 conda: true
