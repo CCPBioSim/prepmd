@@ -12,6 +12,7 @@ authors:
     family-names: Welch
     email: robert.welch@stfc.ac.uk
     affiliation: 'STFC, Scientific Computing'
+    orcid: 'https://orcid.org/0000-0002-0135-0112'
   - given-names: Harry
     family-names: Swift
     email: harry.swift@stfc.ac.uk
@@ -22,6 +23,26 @@ authors:
     email: jas.kalayan@stfc.ac.uk
     affiliation: 'STFC, Scientific Computing'
     orcid: 'https://orcid.org/0000-0002-6833-1864'
+  - given-names: Tom
+    family-names: Burnley
+    email: tom.burnley@stfc.ac.uk
+    affiliation: 'Scientific Computing Department, STFC Rutherford Appleton Laboratory, Didcot OX11 0QX, United Kingdom'
+    orcid: 'https://orcid.org/0000-0001-5307-348X'
+  - given-names: Martyn
+    family-names: Winn
+    email: martyn.winn@stfc.ac.uk
+    affiliation: 'Scientific Computing Department, STFC Rutherford Appleton Laboratory, Didcot OX11 0QX, United Kingdom'
+    orcid: 'https://orcid.org/0000-0003-0496-6796'
+  - given-names: James
+    family-names: Gebbie-Rayet
+    email: james.gebbie@stfc.ac.uk
+    affiliation: 'Scientific Computing Department, STFC Daresbury Laboratory, Warrington WA4 4AD, United Kingdom'
+    orcid: 'https://orcid.org/0000-0001-8271-3431'
+  - given-names: Sarah
+    family-names: Harris
+    email: sarah.harris@sheffield.ac.uk
+    affiliation: School of Mathematical and Physical Sciences, University of Sheffield, United Kingdom
+    orcid: 'https://orcid.org/0000-0002-2812-1651'
 repository-code: 'https://github.com/CCPBioSim/prepmd'
 abstract: >-
   A utility to automatically prepare structures from the PDB
@@ -30,6 +51,6 @@ abstract: >-
 keywords:
   - PDB
   - MD simulations
-license: AGPL-3.0
+license: LGPL-2.1
 version: 1.0.2
 date-released: '2026-10-19'
