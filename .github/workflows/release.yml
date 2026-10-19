@@ -164,6 +164,68 @@ jobs:
             --data-urlencode "topic=software releases" \
             --data-urlencode "content=${CONTENT}"
 
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build dispatch payload
+        id: payload
+        shell: bash
+        env:
+          NAME: ${{ github.event.repository.name }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          VERSION: ${{ github.event.inputs.version }}
+          META_FILE: .github/web-meta.yaml
+          CFF_FILE: CITATION.cff
+        run: |
+          for f in "$META_FILE" "$CFF_FILE"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f not found in $(pwd)"
+              ls -la . .github
+              exit 1
+            fi
+          done
+
+          # Constructed URLs (Read the Docs slugs are lowercase)
+          github_url="$REPO_URL"
+          docs_url="https://${NAME,,}.readthedocs.io/"
+
+          # Metadata from web-meta.yaml
+          meta=$(yq -o=json '.' "$META_FILE")
+
+          # Authors from CITATION.cff -> { "Full Name": "orcid url" }
+          authors=$(yq -o=json '.authors' "$CFF_FILE" | jq -c '
+            map({
+              key: (
+                if .name then .name
+                else ([."given-names", ."family-names"] | map(select(. != null)) | join(" "))
+                end
+              ),
+              value: (.orcid // "")
+            }) | from_entries')
+
+          payload=$(jq -nc \
+            --arg name "$NAME" \
+            --arg github "$github_url" \
+            --arg docs "$docs_url" \
+            --arg version "$VERSION" \
+            --argjson meta "$meta" \
+            --argjson authors "$authors" \
+            '{
+              name: $name,
+              meta: ({github: $github, docs: $docs} + $meta + {version: $version, authors: $authors})
+            }')
+
+          echo "payload: $payload"
+          echo "json=$payload" >> "$GITHUB_OUTPUT"
+
+      - name: Post version to website metadata repo
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+        with:
+          token: ${{ secrets.BUILD_TOKEN }}
+          repository: ccpbiosim/ccpbiosim.github.io
+          event-type: software
+          client-payload: ${{ steps.payload.outputs.json }}
+
   conda:
     name: publish conda to anaconda.org
     needs: [tag, release]
