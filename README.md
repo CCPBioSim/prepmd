@@ -1,7 +1,5 @@
-<p align="center" width="100%">
-  <img src="https://raw.githubusercontent.com/CCPBioSim/branding/refs/heads/main/logos/prepmd/prepmd-logo-black-text.svg" width="256px" >
-</div>
-
+prepmd
+==============================
 
 | Category       | Badges |
 |----------------|--------|
@@ -12,6 +10,11 @@
 | **Quality**    | [![Coverage Status](https://coveralls.io/repos/github/CCPBioSim/prepmd/badge.svg?branch=main)](https://coveralls.io/github/CCPBioSim/prepmd?branch=main) |
 
 A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations.
+
+<p align="center">
+    <img src="docs/source/_static/logos/prepmd-logo-white-text.svg#gh-dark-mode-only" alt="prepmd logo" width="300"/>
+    <img src="docs/source/_static/logos/prepmd-logo-black-text.svg#gh-light-mode-only" alt="prepmd logo" width="300"/>
+</p>
 
 ## Example usage
 <img width="768" height="432" alt="demo" src="https://github.com/user-attachments/assets/f7785a4d-ef54-428d-b193-1cb6413bc21e" />
@@ -29,7 +32,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 ## Geting Started
 * Install using conda: `conda install -c CCPBioSim -c salilab prepmd`
 * Run it: `prepmd 6xov 6xov_processed.pdb`
-* [More documentaqtion (including more install info) on readthedocs](https://prepmd.readthedocs.io/en/latest).
+* [More documentation (including more install info) on readthedocs](https://prepmd.readthedocs.io/en/latest).
 
 ## Licence
 AGPLv3
