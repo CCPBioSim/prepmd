@@ -14,11 +14,7 @@
 A utility to automatically prepare structures from the PDB for molecular dynamics simulation and perform minimisations and simple MD simulations.
 
 ## Example usage
-<p align="center">
-    <img src="docs/_static/logos/prepmd-logo-white-text.svg#gh-dark-mode-only" alt="prepmd logo" width="300"/>
-    <img src="docs/_static/logos/prepmd-logo-black-text.svg#gh-light-mode-only" alt="prepmd logo" width="300"/>
-</p>
-
+<img width="768" height="432" alt="demo" src="https://github.com/user-attachments/assets/f7785a4d-ef54-428d-b193-1cb6413bc21e" />
 
 ## Features
 * Automatically download structures, sequences and metadata from the PDB, PDB-REDO, EMDB and UNIPROT
