@@ -35,7 +35,7 @@ A utility to automatically prepare structures from the PDB for molecular dynamic
 * [More documentation (including more install info) on readthedocs](https://prepmd.readthedocs.io/en/latest).
 
 ## Licence
-AGPLv3
+LGPL2.1+
 
 ## Contributors
 `prepmd` is developed by Rob Welch. Thanks to Harry Swift for helping set up the CI, organising a lot of the repo stuff and managing the CCPBioSim conda channel. The logo was created by Jas Kalayan. This project is funded by [DRI-IMB](https://driimb.org/) and the repo is managed by CCPBioSim.
