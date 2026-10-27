@@ -15,7 +15,7 @@ Steps in the `prepmd` workflow:
 * The final, mimimised structure file will be written out. Note: if ligands are present, the non-minimised structure will be written instead - this is to allow the user to choose which ligand files to include in their final structure, which can be minimised using `runmd`.
 
 ## prepmd command-line reference
-* Use `prepmd --help` for a full list of parameters. 
+* Use `prepmd --help` for a full list of parameters.
 
 ## Worked examples
 

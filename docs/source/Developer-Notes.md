@@ -18,7 +18,7 @@ Dependencies
 Manual install
 --------------
 * Install [Conda](https://github.com/conda-forge/miniforge?tab=readme-ov-file#install) (if you don't already have it)
-* Clone this repo and enter the folder: `git clone https://github.com/CCPBioSim/prepmd.git && cd prepmd` 
+* Clone this repo and enter the folder: `git clone https://github.com/CCPBioSim/prepmd.git && cd prepmd`
 * Run `conda env create --name prepmd --file environment.yaml && conda activate prepmd && pip install -e .`
 * For the MODELLER part of the workflow to work, you need a [modeller license key](https://salilab.org/modeller/registration.html) and add it to modeller's config.py file. If you use conda, the key will be in `envs/prep/lib/modeller-10.7/modlib/modeller/config.py` relative to the path where conda is installed.
 * After installing, run `pytest` to run tests.
