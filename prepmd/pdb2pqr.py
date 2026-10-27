@@ -17,6 +17,7 @@ def run_pdb2pqr(infile, outfile, ff="AMBER", ph=7):
         infile - path to input file, a string
         outfile - path to output PQR file, a string
         ff - force field to use for calculations and residue naming
+
     Returns:
         nothing, but writes 'outfile'
     """

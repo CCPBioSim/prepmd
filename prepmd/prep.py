@@ -85,9 +85,11 @@ parser.add_argument("-nm", "--nomodeller",
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     """
     Generate a random 6-character ID. Used for naming scratch directories.
+
     Args:
         size: length of string, an int
         chars; chars to use, a string
+
     Returns:
         the string
     """
@@ -102,6 +104,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
          split_hetatms=False, no_modeller=False, ph=7.0):
     """
     Prepare a PDB/MMCIF structure file for simulation.
+
     Args:
         code: pdb code, a string
         outmodel: path to output file, a string
@@ -137,6 +140,7 @@ def prep(code, outmodel, workingdir, folder=None, fastafile=None, inmodel=None,
         split_hetatms: if this is set to True, hetams will be written to sdf
         files, otherwise they will be removed.
         ph - ph to target when adding hydrogens, a float
+
     Returns:
         nothing, but writes out a file to outmodel.
     """

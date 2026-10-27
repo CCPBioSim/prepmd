@@ -34,8 +34,10 @@ codes = {
 def is_residue(resid):
     """
     Check if a string is a valid residue.
+
     Args:
         resid: the string
+
     Returns:
         a boolean that is true if the string is a valid residue
     """
@@ -45,8 +47,10 @@ def is_residue(resid):
 def is_residue_sequence(sequence):
     """
     Check if a sequence only contains valid residues
+
     Args:
         sequence: an iterable
+
     Returns:
         true if every item in the iterable is a valid residue, otherwise false
     """
@@ -60,10 +64,12 @@ def three_to_one(resid, ignore_non_standard=False):
     """
     Convert the three-character residue representation found in SEQRES records
     to the one-character FASTA representation.
+
     Args:
         resid: the residue, a string
         ignore_non_standard: ignore non-standard residues instead of throwing
         an error, a bool
+
     Returns:
         the fasta residue, a string
     """
@@ -81,8 +87,10 @@ def three_to_one_sequence(resids):
     """
     Convert the three-character residue representation found in SEQRES records
     to the one-character FASTA representation.
+
     Args:
         resid: an iterable of strings containing three-character residue codes
+
     Returns:
         the residue sequence in FASTA format
     """

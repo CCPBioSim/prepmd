@@ -18,6 +18,7 @@ import MDAnalysis as mda
 def to_point_cloud(mrcdata, voxel, contour_level):
     """
     Convert an EM density map to a point cloud.
+
     Args:
         mrcdata - ndarray of size resolutionXresolutionXresolution
         containg MRC data.
@@ -26,6 +27,7 @@ def to_point_cloud(mrcdata, voxel, contour_level):
         dimensions.
         contour_level: density above which to add a point to the point cloud,
         a float.
+
     Returns:
         point cloud as an ndarray with three columns (x, y, z) and a row for
         each point.
@@ -42,12 +44,14 @@ def score_pdb_map(pdb, em_map, contour_level):
     """
     For a given pdb and em_map, convert them to point clouds and score their
     similarity based on the error in an alignment between two point clouds.
+
     Args:
         pdb - path to a pdb file, a string
         em_map - path to an an em map file for the same structure as that pdb,
         a string.
         contour_level: density above which to add a point to the point cloud,
         a float.
+
     Returns:
         the error, a float
     """

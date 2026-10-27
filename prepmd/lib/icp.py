@@ -11,9 +11,11 @@ from sklearn.neighbors import NearestNeighbors
 def best_fit_transform(A, B):
     '''
     Calculates the least-squares best-fit transform between corresponding 3D points A->B
-    Input:
+
+    Args:
       A: Nx3 numpy array of corresponding 3D points
       B: Nx3 numpy array of corresponding 3D points
+
     Returns:
       T: 4x4 homogeneous transformation matrix
       R: 3x3 rotation matrix
@@ -52,10 +54,12 @@ def best_fit_transform(A, B):
 def nearest_neighbor(src, dst):
     '''
     Find the nearest (Euclidean) neighbor in dst for each point in src
-    Input:
+
+    Args:
         src: Nx3 array of points
         dst: Nx3 array of points
-    Output:
+
+    Returns:
         distances: Euclidean distances of the nearest neighbor
         indices: dst indices of the nearest neighbor
     '''
@@ -68,13 +72,15 @@ def nearest_neighbor(src, dst):
 def icp(A, B, init_pose=None, max_iterations=100, tolerance=1e-10):
     '''
     The Iterative Closest Point method
-    Input:
+
+    Args:
         A: Nx3 numpy array of source 3D points
         B: Nx3 numpy array of destination 3D point
         init_pose: 4x4 homogeneous transformation
         max_iterations: exit algorithm after max_iterations
         tolerance: convergence criteria
-    Output:
+
+    Returns:
         T: final homogeneous transformation
         distances: Euclidean distances (errors) of the nearest neighbor
     '''

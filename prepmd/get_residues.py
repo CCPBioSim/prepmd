@@ -16,9 +16,11 @@ def get_residues_pdb(pdb, code, get_hetatms=False):
     """
     Get the fasta sequence of residues in the ATOM entries of a PDB or mmCif
     file.
+
     Args:
         pdb: path to pdb file, a string
         code: PDB code
+
     Returns:
         the fasta sequence as a string
     """
@@ -41,9 +43,11 @@ def get_fullseq_pdb(pdb, code, get_hetatms=False):
     """
     Get the fasta sequence of residues in the SEQRES records of a PDB/mmCif
     file.
+
     Args:
         pdb: path to pdb/mmcif file, a string
         code: PDB code
+
     Returns:
         the fasta sequence as a string
     """

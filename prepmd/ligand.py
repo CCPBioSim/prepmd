@@ -55,6 +55,7 @@ def load_universe(pdb_path):
     
     Args:
         pdb_path: path to a pdb or cif file
+
     Returns:
         an mdanalysis Universe object
     """
@@ -104,6 +105,7 @@ def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
         new_pdb_output - filename for the new pdb file, a string. Otherwise the
         existing pdb file will be overwritten.
         neutralise_radicals - whether to remove free radicals. A bool.
+
     Returns:
         a list of strings, where each string is the filename of an sdf file
         that has been written, which are named according to their residue.
@@ -272,6 +274,7 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
                    solvent_name="HOH"):
     """
     Solvate an openff system.
+
     Args:
         interchange: an openff interchange containing the protein AND ligand.
         protein: protein loaded as an openff topology
@@ -288,6 +291,7 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
         solvent_smiles: smiles string for the solvent molecule.
         ff: force field to use, A string. Can be any openff force field.
         solvent name: name of solvent molecule (for topology!) - a string
+
     Returns:
         openff topology and an interchange for just the waters.
     """
@@ -364,6 +368,7 @@ def create_ligand_system(
         ligands_names=None):
     """
     Set up an openmm system containing ligands using openff.
+
     Args:
         protein_structure: structure file path, pdb or mmcif, a string
         ligand_structure: a list of strings where each string is a path to
@@ -382,6 +387,7 @@ def create_ligand_system(
         solvent_name - solvent name to appear in the topology, a string
         ligands_names: names of ligands to be written to the topology. a list
         of strings
+
     Returns:
         an openmm system, topology and positions object.
     """

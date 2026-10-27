@@ -58,6 +58,7 @@ def remove_hetatms_unk(pdb, out):
 def fix(pdb, out, remove_heterogens=True, add_hydrogens=True, ph=7.0):
     """
     Fix a pdb file with pdbfixer.
+
     Arguments:
         pdb: path to a pdb or mmcif file, a string
         out: output file path, a string
@@ -87,9 +88,11 @@ def restore_metadata_pdb(pdb, fixed_pdb):
     """
     Copy metadata from one pdb file to another. Useful as the output of
     pdbfixer and other tools often doesn't contain REMARKS and such.
+
     Args:
         pdb: original pdb file path containing metadata, a string
         fixed_pdb: new pdb file path, containing no metadata, a string
+
     Returns:
         nothing, but updates the contents of fixed_pdb
     """
