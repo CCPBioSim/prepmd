@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Utility functions
 """
@@ -73,7 +72,7 @@ def three_to_one(resid, ignore_non_standard=False):
     Returns:
         the fasta residue, a string
     """
-    if list(set(resid)) == ["."]: # hetatms
+    if list(set(resid)) == ["."]:  # hetatms
         return resid
     if is_residue(resid):
         return codes[resid]

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Fix structures using PDBFixer
 """
 
-from pdbfixer import PDBFixer
 from openmm.app import PDBFile, PDBxFile
+from pdbfixer import PDBFixer
 
 
 def fix_nonstandard_cif(cif):
@@ -38,6 +37,7 @@ def fix_nonstandard_cif(cif):
 
     with open(cif, "w") as file:
         file.writelines(outtext)
+
 
 # for some reason, i can't get pdbfixer to remove hetatm and unk residues?
 def remove_hetatms_unk(pdb, out):
@@ -79,9 +79,9 @@ def fix(pdb, out, remove_heterogens=True, add_hydrogens=True, ph=7.0):
     if add_hydrogens:
         fixer.addMissingHydrogens(ph)
     if ".cif" in pdb or ".mmcif" in pdb:
-        PDBxFile.writeFile(fixer.topology, fixer.positions, open(out, 'w'))
+        PDBxFile.writeFile(fixer.topology, fixer.positions, open(out, "w"))
     else:
-        PDBFile.writeFile(fixer.topology, fixer.positions, open(out, 'w'))
+        PDBFile.writeFile(fixer.topology, fixer.positions, open(out, "w"))
 
 
 def restore_metadata_pdb(pdb, fixed_pdb):

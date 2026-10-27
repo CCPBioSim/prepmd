@@ -8,8 +8,9 @@ This code was originally licensed under the Apache License version 2.0.
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
+
 def best_fit_transform(A, B):
-    '''
+    """
     Calculates the least-squares best-fit transform between corresponding 3D points A->B
 
     Args:
@@ -21,7 +22,7 @@ def best_fit_transform(A, B):
       R: 3x3 rotation matrix
       t: 3x1 column vector for translation
       s: 3x1 column vector for scaling
-    '''
+    """
 
     assert len(A) == len(B)
 
@@ -38,8 +39,8 @@ def best_fit_transform(A, B):
 
     # special reflection case
     if np.linalg.det(R) < 0:
-       Vt[2,:] *= -1
-       R = np.dot(Vt.T, U.T)
+        Vt[2, :] *= -1
+        R = np.dot(Vt.T, U.T)
 
     # translation
     t = centroid_B.T - np.dot(R, centroid_A.T)
@@ -51,8 +52,9 @@ def best_fit_transform(A, B):
 
     return T, R, t
 
+
 def nearest_neighbor(src, dst):
-    '''
+    """
     Find the nearest (Euclidean) neighbor in dst for each point in src
 
     Args:
@@ -62,15 +64,16 @@ def nearest_neighbor(src, dst):
     Returns:
         distances: Euclidean distances of the nearest neighbor
         indices: dst indices of the nearest neighbor
-    '''
+    """
 
     neigh = NearestNeighbors(n_neighbors=1)
     neigh.fit(dst)
     distances, indices = neigh.kneighbors(src, return_distance=True)
     return distances.ravel(), indices.ravel()
 
+
 def icp(A, B, init_pose=None, max_iterations=100, tolerance=1e-10):
-    '''
+    """
     The Iterative Closest Point method
 
     Args:
@@ -83,13 +86,13 @@ def icp(A, B, init_pose=None, max_iterations=100, tolerance=1e-10):
     Returns:
         T: final homogeneous transformation
         distances: Euclidean distances (errors) of the nearest neighbor
-    '''
+    """
 
     # make points homogeneous, copy them so as to maintain the originals
-    src = np.ones((4,A.shape[0]))
-    dst = np.ones((4,B.shape[0]))
-    src[0:3,:] = np.copy(A.T)
-    dst[0:3,:] = np.copy(B.T)
+    src = np.ones((4, A.shape[0]))
+    dst = np.ones((4, B.shape[0]))
+    src[0:3, :] = np.copy(A.T)
+    dst[0:3, :] = np.copy(B.T)
 
     # apply the initial pose estimation
     if init_pose is not None:
@@ -98,25 +101,26 @@ def icp(A, B, init_pose=None, max_iterations=100, tolerance=1e-10):
     prev_error = 0
 
     try:
+        for _i in range(max_iterations):
+            # find the nearest neighbours between the current source and destination
+            # points
+            distances, indices = nearest_neighbor(src[0:3, :].T, dst[0:3, :].T)
 
-        for i in range(max_iterations):
-            # find the nearest neighbours between the current source and destination points
-            distances, indices = nearest_neighbor(src[0:3,:].T, dst[0:3,:].T)
-
-            # compute the transformation between the current source and nearest destination points
-            T, _, _ = best_fit_transform(src[0:3,:].T, dst[0:3,indices].T)
+            # compute the transformation between the current source and nearest
+            # destination points
+            T, _, _ = best_fit_transform(src[0:3, :].T, dst[0:3, indices].T)
 
             # update the current source
             src = T.dot(src)
 
             # check error
             mean_error = np.sum(distances) / distances.size
-            if abs(prev_error-mean_error) < tolerance:
+            if abs(prev_error - mean_error) < tolerance:
                 break
             prev_error = mean_error
 
         # calculate final transformation
-        T, _, _ = best_fit_transform(A, src[0:3,:].T)
+        T, _, _ = best_fit_transform(A, src[0:3, :].T)
 
         return T, distances
     except ValueError as e:

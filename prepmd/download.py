@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Download data from the PDB and UNIPROT
 """
 
 import urllib.request
 from os.path import sep
+
 import requests
 
 
@@ -21,15 +21,21 @@ def get_em_map(emdb_id, directory):
         path to the downloaded file.
     """
     emdb_id = str(emdb_id).replace("EMD-", "").replace("emd-", "")
-    url = "https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-"+str(emdb_id)+"/map/emd_"+str(emdb_id)+".map.gz"
-    destination = directory+sep+str(emdb_id)+".map.gz"
+    url = (
+        "https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-"
+        + str(emdb_id)
+        + "/map/emd_"
+        + str(emdb_id)
+        + ".map.gz"
+    )
+    destination = directory + sep + str(emdb_id) + ".map.gz"
     try:
         urllib.request.urlretrieve(url, destination)
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            msg = "EMDB entry with ID "+emdb_id+" not found."
-            raise IOError(msg)
-    return directory+sep+str(emdb_id)+".map.gz"
+            msg = "EMDB entry with ID " + emdb_id + " not found."
+            raise OSError(msg) from e
+    return directory + sep + str(emdb_id) + ".map.gz"
 
 
 def get_structure(pdb_id, directory, file_format="mmCif", redo=False):
@@ -51,29 +57,39 @@ def get_structure(pdb_id, directory, file_format="mmCif", redo=False):
         format_str = "pdb"
     try:
         if redo:
-            url = "https://pdb-redo.eu/db/"+pdb_id+"/"+pdb_id+"_final"+"."+format_str
+            url = (
+                "https://pdb-redo.eu/db/"
+                + pdb_id
+                + "/"
+                + pdb_id
+                + "_final"
+                + "."
+                + format_str
+            )
             print(url)
         else:
-            url = "https://files.rcsb.org/download/"+pdb_id+"."+format_str
-        destination = directory+sep+pdb_id+"."+format_str
+            url = "https://files.rcsb.org/download/" + pdb_id + "." + format_str
+        destination = directory + sep + pdb_id + "." + format_str
         urllib.request.urlretrieve(url, destination)
     except urllib.error.HTTPError as e:
         if e.code == 404 and redo:
-            msg = "PDB with ID "+pdb_id+" not found in PDB-REDO."
-            raise IOError(msg)
+            msg = "PDB with ID " + pdb_id + " not found in PDB-REDO."
+            raise OSError(msg) from e
         r = requests.get(url.replace(".pdb", ".cif"))
         if r.status_code == 200:
-            msg = "No PDB for "+pdb_id + \
-                " exists (but an mmcif structure does). "
-            "Run with --fmt cif to use it."
-            raise IOError(msg)
+            msg = (
+                "No PDB for " + pdb_id + " exists (but an mmcif structure does). "
+                "Run with --fmt cif to use it."
+            )
+            raise OSError(msg) from e
         else:
             raise e
-    return directory+sep+pdb_id+"."+format_str
+    return directory + sep + pdb_id + "." + format_str
 
 
-def get_uniprot_sequence(pdb_id, merge_sequence=True, write_to_file=None,
-                         verbose=False):
+def get_uniprot_sequence(
+    pdb_id, merge_sequence=True, write_to_file=None, verbose=False
+):
     """
     For a given pdb id, find the fasta sequence for all chains from UNIPROT.
 
@@ -88,8 +104,11 @@ def get_uniprot_sequence(pdb_id, merge_sequence=True, write_to_file=None,
         the fasta sequences as a dictionry keyed by pdb id, or a string
         with the fasta sequence.
     """
-    query = '''{
-      entries(entry_ids:["'''+pdb_id+'''"]){
+    query = (
+        '''{
+      entries(entry_ids:["'''
+        + pdb_id
+        + """"]){
         polymer_entities {
           rcsb_id
           rcsb_polymer_entity_container_identifiers {
@@ -100,25 +119,34 @@ def get_uniprot_sequence(pdb_id, merge_sequence=True, write_to_file=None,
           }
         }
       }
-    }'''
-    data = requests.get('https://data.rcsb.org/graphql?query='+query)
+    }"""
+    )
+    data = requests.get("https://data.rcsb.org/graphql?query=" + query)
     accessions = {}
-    for item in data.json()['data']['entries']:
-        entities = item['polymer_entities']
+    for item in data.json()["data"]["entries"]:
+        entities = item["polymer_entities"]
         for entity in entities:
-            if entity['rcsb_polymer_entity_container_identifiers']['reference_sequence_identifiers']:
-                for identifier in entity['rcsb_polymer_entity_container_identifiers']['reference_sequence_identifiers']:
-                    accessions[int(entity["rcsb_id"].split("_")[1])
-                               ] = identifier['database_accession']
+            if entity["rcsb_polymer_entity_container_identifiers"][
+                "reference_sequence_identifiers"
+            ]:
+                for identifier in entity["rcsb_polymer_entity_container_identifiers"][
+                    "reference_sequence_identifiers"
+                ]:
+                    accessions[int(entity["rcsb_id"].split("_")[1])] = identifier[
+                        "database_accession"
+                    ]
             else:
                 accessions[int(entity["rcsb_id"].split("_")[1])] = None  # rna?
     if verbose:
-        print("Accessions: "+str(accessions))
+        print("Accessions: " + str(accessions))
     sequences = {}
     for key, value in accessions.items():
         if value:
-            url = "https://rest.uniprot.org/uniprotkb/stream?compressed=false&format=fasta&query=(accession:" + \
-                value+")"
+            url = (
+                "https://rest.uniprot.org/uniprotkb/stream?compressed=false&format=fasta&query=(accession:"
+                + value
+                + ")"
+            )
             seq = requests.get(url)
             sequences[key] = seq.text
         else:
@@ -128,16 +156,16 @@ def get_uniprot_sequence(pdb_id, merge_sequence=True, write_to_file=None,
         return sequences
     names = []
     combined_sequences = []
-    for key, sequence in sequences.items():
+    for sequence in sequences.values():
         if sequence is None:
             continue
-        names.append(sequence.split("\n")[0].replace(
-            "sp|", "").replace(">", ""))
+        names.append(sequence.split("\n")[0].replace("sp|", "").replace(">", ""))
         seq_noheader = sequence.split("\n")[1:]
         combined_sequences.append("".join(seq_noheader).replace("\n", ""))
 
-    fasta = ">P1;"+pdb_id+"\n" + \
-        ";".join(names)+"\n"+"/".join(combined_sequences)
+    fasta = (
+        ">P1;" + pdb_id + "\n" + ";".join(names) + "\n" + "/".join(combined_sequences)
+    )
     if write_to_file:
         with open(write_to_file, "w") as file:
             file.write(fasta)

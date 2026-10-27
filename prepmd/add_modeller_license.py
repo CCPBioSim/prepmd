@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Change the modeller license key
 """
 
 import importlib
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # note: don't do this
 # i have to do it like this to make the conda build work
 
-HELP_MSG =  "Usage: prep-license LICENSE-KEY (will replace current key)"
+HELP_MSG = "Usage: prep-license LICENSE-KEY (will replace current key)"
+
 
 def setup_license(key):
     modeller_init_path = Path(importlib.util.find_spec("modeller").origin)
-    modeller_lib = modeller_init_path.parent.parent.absolute() / "modeller" / "config.py"
+    modeller_lib = (
+        modeller_init_path.parent.parent.absolute() / "modeller" / "config.py"
+    )
     with open(modeller_lib) as file:
         contents = file.readlines()
     splitline = contents[1].split("'")
@@ -23,6 +25,7 @@ def setup_license(key):
     contents[1] = contents_1_new
     with open(modeller_lib, "w") as file:
         file.writelines(contents)
+
 
 def entry_point():
     if len(sys.argv) != 2:
@@ -35,6 +38,6 @@ def entry_point():
     setup_license(key)
     print("Updated modeller license info.")
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     entry_point()
