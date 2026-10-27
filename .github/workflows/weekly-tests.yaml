@@ -30,4 +30,4 @@ jobs:
       channels: salilab,conda-forge
       test-path: test
       pytest-args: -v
-      timeout-minutes: 60
+      timeout-minutes: 120
