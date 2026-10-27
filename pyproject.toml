@@ -33,6 +33,10 @@ Repository = "https://github.com/CCPBioSim/prepmd"
 Documentation = "https://prepmd.readthedocs.io/en/latest/"
 
 [project.optional-dependencies]
+testing = [
+    "pytest>=9.0,<10.0",
+    "pytest-cov>=7.0,<8.0",
+]
 docs = [
     "sphinx>=9,<10",
     "nbsphinx>=0.9,<1.0",
