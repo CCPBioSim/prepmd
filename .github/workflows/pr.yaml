@@ -42,6 +42,16 @@ jobs:
       build-dir: build
       timeout-minutes: 20
 
+  pre-commit:
+    name: Pre-commit
+    needs: unit
+    uses: CCPBioSim/.github/.github/workflows/ci-pre-commit.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    permissions:
+      contents: read
+    with:
+      python-version: "3.13"
+      timeout-minutes: 15
+
   conda-build:
     name: Conda build
     needs: unit
