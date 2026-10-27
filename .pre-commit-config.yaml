@@ -1,0 +1,39 @@
+exclude: ^test/test_data/
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.2
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-yaml
+        exclude: ^conda-recipe/meta\.yaml$
+      - id: check-toml
+      - id: check-case-conflict
+      - id: check-ast
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/rstcheck/rstcheck
+    rev: v6.3.0
+    hooks:
+      - id: rstcheck
+        name: rstcheck (docstrings only)
+        files: \.py$
+        args: ["--report-level", "warning"]
+
+  - repo: local
+    hooks:
+      - id: sphinx-docs
+        name: sphinx-build (pre-push, warnings as errors)
+        entry: bash -lc 'make -C docs clean && make -C docs html SPHINXOPTS="-W --keep-going"'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
