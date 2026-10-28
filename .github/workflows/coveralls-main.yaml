@@ -32,4 +32,4 @@ jobs:
       test-path: test
       pytest-args: -v
       coverage: true
-      timeout-minutes: 60
+      timeout-minutes: 360
