@@ -2,8 +2,9 @@
 
 import importlib
 
-import prepmd
 import pytest
+
+import prepmd
 
 
 def test_package_version_is_defined():

@@ -10,7 +10,7 @@ Running MD simulations with runmd
 * If the run is a metadynamics run, and the metadynamics collective variables aren't minimised, the simulation will restart.
 
 ## runmd command-line reference
-* Use `runmd --help` for a full list of parameters. 
+* Use `runmd --help` for a full list of parameters.
 
 ## Example usage
 

@@ -54,14 +54,13 @@ autodoc_mock_imports = [
 
 # -- Napoleon docstring settings --------------------------------------------
 
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 napoleon_use_param = False
 napoleon_use_ivar = True
 
 templates_path = ["_templates"]
 exclude_patterns = []
-
 
 
 # -- Options for HTML output -------------------------------------------------

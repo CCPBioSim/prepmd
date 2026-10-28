@@ -1,0 +1,63 @@
+name: Release prepmd
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, in X.Y.Z form.
+        required: true
+        type: string
+      dry-run:
+        description: Check and build everything but do not open the version PR, tag, release or publish.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare
+    uses: CCPBioSim/.github/.github/workflows/release-prepare.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      version: ${{ inputs.version }}
+      dry-run: ${{ inputs.dry-run }}
+      version-files: >-
+        [
+          {"path": "prepmd/__init__.py", "pattern": "^__version__ =.*", "replace": "__version__ = \"{version}\""},
+          {"path": "CITATION.cff", "pattern": "^version:.*", "replace": "version: {version}"},
+          {"path": "CITATION.cff", "pattern": "^date-released:.*", "replace": "date-released: '{date}'"}
+        ]
+    secrets:
+      AUTO_PR_MERGE: ${{ secrets.AUTO_PR_MERGE }}
+      ZULIP_BOT_EMAIL: ${{ secrets.ZULIP_BOT_EMAIL }}
+      ZULIP_BOT_API_KEY: ${{ secrets.ZULIP_BOT_API_KEY }}
+      ZULIP_SITE: ${{ secrets.ZULIP_SITE }}
+
+  website:
+    name: Website
+    needs: prepare
+    uses: CCPBioSim/.github/.github/workflows/release-website.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    permissions:
+      contents: read
+    with:
+      version: ${{ inputs.version }}
+      tag: ${{ needs.prepare.outputs.tag }}
+      dry-run: ${{ inputs.dry-run }}
+    secrets:
+      BUILD_TOKEN: ${{ secrets.BUILD_TOKEN }}
+
+  conda:
+    name: Conda
+    needs: prepare
+    uses: CCPBioSim/.github/.github/workflows/release-conda.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    permissions:
+      contents: read
+    with:
+      tag: ${{ needs.prepare.outputs.tag || inputs.version }}
+      dry-run: ${{ inputs.dry-run }}
+    secrets:
+      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}

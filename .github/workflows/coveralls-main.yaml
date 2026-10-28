@@ -1,0 +1,35 @@
+name: Coveralls Main
+
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coveralls-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coveralls:
+    name: Build main coverage baseline
+    uses: CCPBioSim/.github/.github/workflows/ci-test-conda.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    permissions:
+      contents: read
+      checks: write
+      statuses: write
+    with:
+      package: prepmd
+      python-versions: '["3.13"]'
+      coverage-python-version: "3.13"
+      os: '["ubuntu-26.04", "macos-26"]'
+      environment-file: environment.yaml
+      activate-environment: prep
+      channels: salilab,conda-forge
+      test-path: test
+      pytest-args: -v
+      coverage: true
+      timeout-minutes: 360

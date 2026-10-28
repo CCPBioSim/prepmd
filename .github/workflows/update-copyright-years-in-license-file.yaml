@@ -1,0 +1,16 @@
+name: Update copyright year(s) in license file
+
+on:
+  schedule:
+    - cron: '0 3 1 1 *' # 03:00 AM on January 1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-license-year:
+    uses: CCPBioSim/.github/.github/workflows/maintenance-license-year.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    permissions:
+      contents: write
+      pull-requests: write

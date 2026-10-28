@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Feb 27 16:49:54 2026
 
@@ -7,22 +6,22 @@ Created on Fri Feb 27 16:49:54 2026
 """
 
 # setup
-import MDAnalysis as mda
-from rdkit import Chem
 import copy
+import os
 
-# run
-from openff.toolkit import Molecule, Topology, ForceField
-from openff.interchange import Interchange
-from openff.interchange.components._packmol import UNIT_CUBE, pack_box
-from openff.units import unit
-from openmm.app import pdbxfile
+import MDAnalysis as mda
+import numpy as np
+from Bio.PDB import MMCIFIO, PDBParser
 from MDAnalysis.converters.OpenMMParser import OpenMMTopologyParser
 from MDAnalysis.coordinates.memory import MemoryReader
-from openmm.app.modeller import Modeller
-from Bio.PDB import PDBParser, MMCIFIO
-import numpy as np
-import os
+from openff.interchange import Interchange
+from openff.interchange.components._packmol import UNIT_CUBE, pack_box
+
+# run
+from openff.toolkit import ForceField, Molecule, Topology
+from openff.units import unit
+from openmm.app import pdbxfile
+from rdkit import Chem
 
 """
 Okay, here's my full laundry list of complaints about rdkit
@@ -52,9 +51,10 @@ def load_universe(pdb_path):
     file into mdanalysis, as mdanalysis does not natively support mmCif files,
     despite the fact that the pdb format has been deprecated for two years (!)
     at time of writing.
-    
+
     Args:
         pdb_path: path to a pdb or cif file
+
     Returns:
         an mdanalysis Universe object
     """
@@ -68,17 +68,20 @@ def load_universe(pdb_path):
         u = mda.Universe(pdb_path)
     return u
 
+
 def pdb_back_to_mmcif(inpdb, outcif):
-        p = PDBParser()
-        struc = p.get_structure("", inpdb)
-        io = MMCIFIO()
-        io.set_structure(struc)
-        io.save(outcif)
+    p = PDBParser()
+    struc = p.get_structure("", inpdb)
+    io = MMCIFIO()
+    io.set_structure(struc)
+    io.save(outcif)
+
 
 # setup ligand system
 
+
 def get_size(atoms):
-    if type(atoms) != np.ndarray:
+    if type(atoms) is not np.ndarray:
         atommap = []
         conf = atoms.GetConformer()
         for atom in atoms.GetAtoms():
@@ -89,76 +92,80 @@ def get_size(atoms):
     maxima = []
     minima = []
     for i in range(2):
-        maxima.append(max(atoms[:,i]))
-        minima.append(min(atoms[:,i]))
+        maxima.append(max(atoms[:, i]))
+        minima.append(min(atoms[:, i]))
     size = np.array(maxima) - np.array(minima)
     return size
+
 
 def split_pdb_ligand(pdb_path, new_pdb_output=None, neutralise_radicals=True):
     """
     Extract ligands from a structure file (pdb or mmcif) and write out a new,
     ligand/hetatm-free structure file and sdf files containing the ligands.
-    
+
     Args:
         pdb_path - path to input pdb or mmcif file, a string
         new_pdb_output - filename for the new pdb file, a string. Otherwise the
         existing pdb file will be overwritten.
         neutralise_radicals - whether to remove free radicals. A bool.
+
     Returns:
         a list of strings, where each string is the filename of an sdf file
         that has been written, which are named according to their residue.
     """
 
     u = load_universe(pdb_path)
-    protein = u.select_atoms('protein')
-    ligand = u.select_atoms('not protein and not water')
-    if len(ligand) == None:
+    protein = u.select_atoms("protein")
+    ligand = u.select_atoms("not protein and not water")
+    if len(ligand) is None:
         print("No hetatms/ligands found.")
         return None
     else:
         print("Extracting hetatms/ligands...")
 
     ligands = ligand.split("residue")
-    
+
     # aaaaa
     # this is a horrible hack because mdanalysis has some kind of bug with
     # the global state whereby if you run .convert_to more than once it writes
     # out junk data for every structure after the first
     ligand_files = []
     for ligand in range(len(ligands)):
-        name = "h"+str(ligand)+".pdb"
+        name = "h" + str(ligand) + ".pdb"
         ligands[ligand].write(name)
         ligand_files.append(name)
-    
-    #ligands = [ligands[4]]
-    
+
+    # ligands = [ligands[4]]
+
     if not new_pdb_output:
         output_path = pdb_path
     else:
         output_path = new_pdb_output
 
     if ".cif" in pdb_path or ".mmcif" in pdb_path:
-        print("Warning: mdanalysis inexplicably  does not support writing "
-              "mmcif files, so your structure will be written to a temporary "
-              "pdb file and then converted to cif. This process may not work "
-              "with all structures, make sure to so double-check the output!")
-        protein.write(output_path+".pdb")
+        print(
+            "Warning: mdanalysis inexplicably  does not support writing "
+            "mmcif files, so your structure will be written to a temporary "
+            "pdb file and then converted to cif. This process may not work "
+            "with all structures, make sure to so double-check the output!"
+        )
+        protein.write(output_path + ".pdb")
         p = PDBParser()
-        struc = p.get_structure("", output_path+".pdb")
+        struc = p.get_structure("", output_path + ".pdb")
         io = MMCIFIO()
         io.set_structure(struc)
-        io.save(output_path) # todo: replace w call to pdb_back_to_mmcif
+        io.save(output_path)  # todo: replace w call to pdb_back_to_mmcif
 
     else:
         protein.write(output_path)
 
     ligand_filenames = []
     ligands_written = {}
-    for ligand, ligand_file in zip(ligands, ligand_files):
+    for ligand, ligand_file in zip(ligands, ligand_files, strict=False):
         resname = "".join(list(set(ligand.resnames)))
         if resname in ligands_written.keys():
             ligands_written[resname] += 1
-            resname += "_"+str(ligands_written[resname])
+            resname += "_" + str(ligands_written[resname])
         else:
             ligands_written[resname] = 1
         fname = save_ligand(ligand_file, resname)
@@ -172,14 +179,15 @@ def TEMP_write(mol, fname):
     writer.close()
 
 
-def save_ligand(ligand, resname, neutralise_radicals = True):
-    
-    if type(ligand) == str:
+def save_ligand(ligand, resname, neutralise_radicals=True):
+
+    if type(ligand) is str:
         u = load_universe(ligand)
         ligand = u.atoms
 
-    mol = ligand.convert_to('RDKIT', NoImplicit=False)
-    #TEMP_write(mol, resname+"_1.sdf")
+    mol = ligand.convert_to("RDKIT", NoImplicit=False)
+
+    # TEMP_write(mol, resname+"_1.sdf")
     # need to create a coordmap or rdkit rotates and translates the ligand
     # for absolutely no reason. luckily getting the positions of atoms in
     # rdkit is very easy. just make a conformer object and then iterate
@@ -195,8 +203,9 @@ def save_ligand(ligand, resname, neutralise_radicals = True):
             coordmap[idx] = pos
             atommap.append([idx, idx])
         return coordmap, atommap
+
     coordmap, atommap = get_coord_atommap(mol)
-    
+
     # do not touch this or it WILL break
     # the molecule does not contain any hydrogens but in order to add
     # hydrogens you have to first run the removehs function, if you don't
@@ -206,11 +215,10 @@ def save_ligand(ligand, resname, neutralise_radicals = True):
         mol = Chem.RemoveHs(mol)
         mol = Chem.AddHs(mol, addCoords=True)
     except Exception as e:
-        print("WARNING: Couldn't extract "+resname+" ("+str(e)+").")
+        print("WARNING: Couldn't extract " + resname + " (" + str(e) + ").")
         return ""
 
-
-    #TEMP_write(mol, resname+"_2.sdf")
+    # TEMP_write(mol, resname+"_2.sdf")
     original_mol = copy.copy(mol)
 
     # remove radicals
@@ -223,55 +231,62 @@ def save_ligand(ligand, resname, neutralise_radicals = True):
                 a.SetNumRadicalElectrons(0)
                 radicals_neutralised += rad
 
-    #TEMP_write(mol, resname+"_3.sdf")
+    # TEMP_write(mol, resname+"_3.sdf")
     mol = Chem.AddHs(mol, addCoords=True)
-    #TEMP_write(mol, resname+"_4.sdf")
+    # TEMP_write(mol, resname+"_4.sdf")
 
     # if you don't call embedmolecule here then the molecule will have
     # exactly one atom in completely the wrong place that will cause the
     # simulation to immediately detonate. however, if you call
     # embedmolecule without a coordmap it will rotate and translate the
     # ligand. it does this out of spite and hatred for molecular modellers
-    #coordmap, atommap = get_coord_atommap(mol)
-    
+    # coordmap, atommap = get_coord_atommap(mol)
+
     unembedded_mol = copy.copy(mol)
     Chem.AllChem.EmbedMolecule(mol, coordMap=coordmap)
-    if np.mean(get_size(mol)) < np.mean(get_size(unembedded_mol))*0.75:
-    #    mol = unembedded_mol
-        print("Warning: embedding "+resname+" with rdkit broke it.")
-    #TEMP_write(mol, resname+"_5.sdf")
+    if np.mean(get_size(mol)) < np.mean(get_size(unembedded_mol)) * 0.75:
+        #    mol = unembedded_mol
+        print("Warning: embedding " + resname + " with rdkit broke it.")
+    # TEMP_write(mol, resname+"_5.sdf")
     # i have to pass this stupid atommap rdMolAlign otherwise it won't
     # align the molecules because there's 'no substructure match' despite
     # them being literally the SAME MOLECULE
-    rmsd = Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
-    #print("rmsd: "+str(rmsd))
-    #TEMP_write(mol, resname+"_6.sdf")
+    Chem.rdMolAlign.AlignMol(mol, original_mol, atomMap=atommap)
+    # print("rmsd: "+str(rmsd))
+    # TEMP_write(mol, resname+"_6.sdf")
 
     Chem.AllChem.MMFFOptimizeMolecule(mol)
-    #Chem.AllChem.UFFOptimizeMolecule(mol)
-    
-    #TEMP_write(mol, resname+"_7.sdf")
+    # Chem.AllChem.UFFOptimizeMolecule(mol)
 
-    writer = Chem.SDWriter(resname+".sdf")
+    # TEMP_write(mol, resname+"_7.sdf")
+
+    writer = Chem.SDWriter(resname + ".sdf")
     writer.write(mol)
     writer.close()
     print("---")
-    return resname+".sdf"
+    return resname + ".sdf"
 
 
-waters = {
-    "tip3p": "tip3p.offxml",
-    "tip4pew": "tip4p_ew.offxml"
-}
+waters = {"tip3p": "tip3p.offxml", "tip4pew": "tip4p_ew.offxml"}
 
 
-def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
-                   positive_ion_smile="[Na+]", negative_ion_smile="[Cl-]",
-                   desired_charge_elementary=0, water_ff="tip3p",
-                   solvent_smiles="O", ff="openff-2.2.0.offxml",
-                   solvent_name="HOH"):
+def solvate_openff(
+    interchange,
+    protein,
+    ligands,
+    n_water=None,
+    gutter_nm=1.5,
+    positive_ion_smile="[Na+]",
+    negative_ion_smile="[Cl-]",
+    desired_charge_elementary=0,
+    water_ff="tip3p",
+    solvent_smiles="O",
+    ff="openff-2.2.0.offxml",
+    solvent_name="HOH",
+):
     """
     Solvate an openff system.
+
     Args:
         interchange: an openff interchange containing the protein AND ligand.
         protein: protein loaded as an openff topology
@@ -288,20 +303,21 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
         solvent_smiles: smiles string for the solvent molecule.
         ff: force field to use, A string. Can be any openff force field.
         solvent name: name of solvent molecule (for topology!) - a string
+
     Returns:
         openff topology and an interchange for just the waters.
     """
 
-    all_molecules = [protein]+ligands
+    all_molecules = [protein] + ligands
 
-    total_charge = round(
-        sum(interchange["Electrostatics"].charges.values()), 3)
+    total_charge = round(sum(interchange["Electrostatics"].charges.values()), 3)
 
     ligand_charge = 0
     for ligand in ligands:
         ligand_charge += ligand.total_charge
     assert total_charge == protein.total_charge + ligand_charge, (
-        f"Total charge of the system is {total_charge}, not {protein.total_charge + ligand.total_charge}"
+        f"Total charge of the system is {total_charge}, not "
+        f"{protein.total_charge + ligand.total_charge}"
     )
 
     water = Molecule.from_smiles(solvent_smiles)
@@ -313,8 +329,9 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
     elif total_charge <= desired_charge_elementary * unit.elementary_charge:
         ion = Molecule.from_smiles(positive_ion_smile)
 
-    num_ions = abs(int((total_charge/unit.elementary_charge) -
-                   (desired_charge_elementary)))
+    num_ions = abs(
+        int((total_charge / unit.elementary_charge) - (desired_charge_elementary))
+    )
 
     ion.generate_conformers(n_conformers=1)
 
@@ -327,7 +344,7 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
         box_vol_angstroms = np.array(box_vectors.to("angstrom").m.diagonal())
         # one water per 30A^3, old JAWS default
         n_water = int(box_vol_angstroms.prod() / 70)
-        print("Adding "+str(n_water)+" water molecules.")
+        print("Adding " + str(n_water) + " water molecules.")
 
     docked_topology = Topology.from_molecules(all_molecules)
 
@@ -348,22 +365,24 @@ def solvate_openff(interchange, protein, ligands, n_water=None, gutter_nm=1.5,
 
 
 def create_ligand_system(
-        protein_structure,  # pdb finame
-        ligand_structures,  # list of ligand filenames
-        n_water=None,  # if None, calculate water automatically
-        water_ff="tip3p",  # tip3p or tip4pew only supported
-        solvent_smiles="O",
-        gutter_nm=1,
-        positive_ion_smile="[Na+]",
-        negative_ion_smile="[Cl-]",
-        desired_charge_elementary=0,
-        ff="ff14sb_off_impropers_0.0.4.offxml",
-        ligand_ff="openff-2.2.0.offxml",
-        output_topology=None,
-        solvent_name="HOH",
-        ligands_names=None):
+    protein_structure,  # pdb finame
+    ligand_structures,  # list of ligand filenames
+    n_water=None,  # if None, calculate water automatically
+    water_ff="tip3p",  # tip3p or tip4pew only supported
+    solvent_smiles="O",
+    gutter_nm=1,
+    positive_ion_smile="[Na+]",
+    negative_ion_smile="[Cl-]",
+    desired_charge_elementary=0,
+    ff="ff14sb_off_impropers_0.0.4.offxml",
+    ligand_ff="openff-2.2.0.offxml",
+    output_topology=None,
+    solvent_name="HOH",
+    ligands_names=None,
+):
     """
     Set up an openmm system containing ligands using openff.
+
     Args:
         protein_structure: structure file path, pdb or mmcif, a string
         ligand_structure: a list of strings where each string is a path to
@@ -382,13 +401,14 @@ def create_ligand_system(
         solvent_name - solvent name to appear in the topology, a string
         ligands_names: names of ligands to be written to the topology. a list
         of strings
+
     Returns:
         an openmm system, topology and positions object.
     """
 
     print("Setting up ligand simulation...")
     if water_ff not in waters.keys():
-        raise ValueError("Water must be one of: "+",".join(waters.keys()))
+        raise ValueError("Water must be one of: " + ",".join(waters.keys()))
 
     protein_with_crystal_water = Topology.from_pdb(protein_structure)
     protein = protein_with_crystal_water.molecule(0)
@@ -399,9 +419,9 @@ def create_ligand_system(
         force_field=ff14sb,
         topology=protein.to_topology(),
     )
-    
+
     if not ligands_names:
-        ligands_names = [None]*len(ligand_structures)
+        ligands_names = [None] * len(ligand_structures)
         for ligand_fname in range(len(ligand_structures)):
             try:
                 basename = os.path.basename(ligand_structures[ligand_fname])
@@ -409,40 +429,43 @@ def create_ligand_system(
                 if "_" in resname:
                     resname = resname.split("_")[0]
                 ligands_names[ligand_fname] = resname
-            except:
+            except Exception:
                 pass
         if None in ligands_names:
-            print("Warning: missing ligand name(s)! Will appear in topology "
-                  "as 'UNK'.")
+            print("Warning: missing ligand name(s)! Will appear in topology as 'UNK'.")
 
     ligands = []
-    for ligand, name in zip(ligand_structures, ligands_names):
+    for ligand, name in zip(ligand_structures, ligands_names, strict=False):
         current_ligand = Molecule.from_file(ligand)
         if name:
-            current_ligand.name = name # ADD THIS
+            current_ligand.name = name  # ADD THIS
             for atom in current_ligand.atoms:
                 atom.metadata["residue_name"] = name
         ligands.append(current_ligand)
 
     ligand_topology = Topology.from_molecules(ligands)
 
-    ligand_force_field = ForceField(
-        ligand_ff, waters[water_ff])  # includes tip3p
+    ligand_force_field = ForceField(ligand_ff, waters[water_ff])  # includes tip3p
 
-    ligand_intrcg = Interchange.from_smirnoff(
-        ligand_force_field, ligand_topology)
+    ligand_intrcg = Interchange.from_smirnoff(ligand_force_field, ligand_topology)
 
     interchange = protein_intrcg.combine(ligand_intrcg)
 
     print("Solvating...")
-    packed_topology, water_interchange = solvate_openff(interchange, protein,
-                                                        ligands, n_water=n_water,
-                                                        gutter_nm=gutter_nm,
-                                                        positive_ion_smile=positive_ion_smile, negative_ion_smile=negative_ion_smile,
-                                                        desired_charge_elementary=desired_charge_elementary, water_ff=water_ff,
-                                                        solvent_smiles=solvent_smiles,
-                                                        ff=ligand_ff,
-                                                        solvent_name=solvent_name)
+    packed_topology, water_interchange = solvate_openff(
+        interchange,
+        protein,
+        ligands,
+        n_water=n_water,
+        gutter_nm=gutter_nm,
+        positive_ion_smile=positive_ion_smile,
+        negative_ion_smile=negative_ion_smile,
+        desired_charge_elementary=desired_charge_elementary,
+        water_ff=water_ff,
+        solvent_smiles=solvent_smiles,
+        ff=ligand_ff,
+        solvent_name=solvent_name,
+    )
 
     solvated_interchange = interchange.combine(water_interchange)
     solvated_interchange.positions = packed_topology.get_positions()
@@ -452,10 +475,12 @@ def create_ligand_system(
         solvated_interchange.to_pdb(output_topology)
     if output_topology:
         if ".mmcif" in output_topology or ".mmCif" in output_topology:
-            print("WARNING: OpenMM can't write mmCif topologies. Writing a pdb"
-                  " and converting it back to mmCif. Sorry!")
-            solvated_interchange.to_pdb(output_topology+".pdb")
-            pdb_back_to_mmcif(output_topology+".pdb", output_topology)
+            print(
+                "WARNING: OpenMM can't write mmCif topologies. Writing a pdb"
+                " and converting it back to mmCif. Sorry!"
+            )
+            solvated_interchange.to_pdb(output_topology + ".pdb")
+            pdb_back_to_mmcif(output_topology + ".pdb", output_topology)
 
     openmm_system = solvated_interchange.to_openmm()
     openmm_topology = solvated_interchange.to_openmm_topology()
