@@ -44,11 +44,11 @@ def score_pdb_map(pdb, em_map, contour_level):
     similarity based on the error in an alignment between two point clouds.
 
     Args:
-        pdb - path to a pdb file, a string
-        em_map - path to an an em map file for the same structure as that pdb,
-        a string.
+        pdb: path to a pdb file, a string.
+        em_map: path to an em map file for the same structure as that pdb,
+            a string.
         contour_level: density above which to add a point to the point cloud,
-        a float.
+            a float.
 
     Returns:
         the error, a float
