@@ -18,7 +18,7 @@ permissions:
 jobs:
   prepare:
     name: Prepare
-    uses: CCPBioSim/.github/.github/workflows/release-prepare.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    uses: CCPBioSim/.github/.github/workflows/release-prepare.yaml@f72e64d2dc791ad5ceda145777a3922895d92a5d # 0.17.0
     permissions:
       contents: write
       pull-requests: write
@@ -40,7 +40,7 @@ jobs:
   website:
     name: Website
     needs: prepare
-    uses: CCPBioSim/.github/.github/workflows/release-website.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    uses: CCPBioSim/.github/.github/workflows/release-website.yaml@f72e64d2dc791ad5ceda145777a3922895d92a5d # 0.17.0
     permissions:
       contents: read
     with:
@@ -53,7 +53,7 @@ jobs:
   conda:
     name: Conda
     needs: prepare
-    uses: CCPBioSim/.github/.github/workflows/release-conda.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    uses: CCPBioSim/.github/.github/workflows/release-conda.yaml@f72e64d2dc791ad5ceda145777a3922895d92a5d # 0.17.0
     permissions:
       contents: read
     with:
