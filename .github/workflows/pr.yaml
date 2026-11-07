@@ -13,7 +13,7 @@ concurrency:
 jobs:
   unit:
     name: Unit
-    uses: CCPBioSim/.github/.github/workflows/ci-test-conda.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    uses: CCPBioSim/.github/.github/workflows/ci-test-conda.yaml@f72e64d2dc791ad5ceda145777a3922895d92a5d # 0.17.0
     permissions:
       contents: read
       checks: write
@@ -34,7 +34,7 @@ jobs:
   docs:
     name: Docs
     needs: unit
-    uses: CCPBioSim/.github/.github/workflows/ci-docs.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    uses: CCPBioSim/.github/.github/workflows/ci-docs.yaml@f72e64d2dc791ad5ceda145777a3922895d92a5d # 0.17.0
     permissions:
       contents: read
     with:
@@ -45,7 +45,7 @@ jobs:
   pre-commit:
     name: Pre-commit
     needs: unit
-    uses: CCPBioSim/.github/.github/workflows/ci-pre-commit.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    uses: CCPBioSim/.github/.github/workflows/ci-pre-commit.yaml@f72e64d2dc791ad5ceda145777a3922895d92a5d # 0.17.0
     permissions:
       contents: read
     with:
@@ -55,7 +55,7 @@ jobs:
   conda-build:
     name: Conda build
     needs: unit
-    uses: CCPBioSim/.github/.github/workflows/ci-conda-build.yaml@2bf63339f2515ec54777e952e8db3d8674d4e5ca # 0.14.0
+    uses: CCPBioSim/.github/.github/workflows/ci-conda-build.yaml@f72e64d2dc791ad5ceda145777a3922895d92a5d # 0.17.0
     permissions:
       contents: read
     with:
